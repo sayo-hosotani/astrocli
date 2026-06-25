@@ -6,7 +6,14 @@
 
 ## Current Command
 
-現時点ではテスト対象のアプリケーションコードがないため、自動テストコマンドは未定義。
+```text
+DOTNET_CLI_HOME=/home/ubuntu/astrocli/.dotnet-home dotnet test tests/AstroCli.Tests/AstroCli.Tests.csproj
+```
+
+## Notes
+
+- VSTestはローカルソケットを作成するため、サンドボックス環境では権限エラーになる場合がある。その場合はユーザー承認付きで実行する。
+- テストでは、固定日時 `"1989-07-08 05:19:00 +09:00"` のJSON出力、Astronomy Engineとの比較、不正入力のエラー動作を確認する。
 
 ## Documentation Check
 
