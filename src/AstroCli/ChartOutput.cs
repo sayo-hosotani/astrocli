@@ -5,14 +5,28 @@ public sealed record ChartOutput(
     string UtcDateTime,
     string System,
     string Chart,
+    LocationOutput Location,
+    BodyPosition Ascendant,
     BodiesOutput Bodies);
+
+public sealed record LocationOutput(
+    string Latitude,
+    string Longitude);
 
 public sealed record BodiesOutput(
     BodyPosition Sun,
-    BodyPosition Moon);
+    BodyPosition Moon,
+    BodyPosition Mercury,
+    BodyPosition Venus,
+    BodyPosition Mars,
+    BodyPosition Jupiter,
+    BodyPosition Saturn,
+    BodyPosition Uranus,
+    BodyPosition Neptune,
+    BodyPosition Pluto);
 
 public sealed record BodyPosition(
     string Name,
-    double EclipticLongitude,
+    string EclipticLongitude,
     string Sign,
-    double DegreeInSign);
+    string DegreeInSign);

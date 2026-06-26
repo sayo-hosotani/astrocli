@@ -2,194 +2,47 @@
 
 ## Objective
 
-AstroCLIの初期MVPとして、西洋占星術のネイタル固定で、指定日時の太陽と月の位置をJSONで標準出力するCLIを実装する。
+西洋占星術ネイタル固定のまま、JSON出力の `bodies` を主要10天体に拡張する。
 
 ## Requirements
 
-### Product Direction
+### Scope
 
-- AstroCLIは、コマンドを実行して占術チャートや天文情報を出力するCLIツールにする。
-- 初期MVPでは、西洋占星術のネイタルチャート向けに、指定日時の太陽と月の位置だけを出力する。
-- 初期MVPでは、本格的なホロスコープ全体、ハウス、アスペクト、解釈文は扱わない。
-- 最終的には、西洋占星術、インド占星術、四柱推命、紫微斗数に対応できる設計にする。
-- 占術ごとにサブカテゴリを指定できる設計にする。
+- 今回は西洋占星術ネイタル固定のままとする。
+- CLI入力形式は現状維持とする。
+- `location` 出力は現状維持とする。
+- `ascendant` 出力は現状維持とする。
+- 天体位置はtopocentricではなく地心基準で計算する。
+- 度数表記は既存どおり60進数文字列にする。
+- 各天体には、黄経、星座名、サイン内度数を含める。
 
-### Technical Direction
+### Bodies
 
-- 言語はC#。
-- .NETはサポート中の最新LTSを優先する。
-- 天文情報取得には `cosinekitty/astronomy` を主候補として検討する。
-- CReiznerのSwiss Ephemeris関連リポジトリは参考資料として調査する。
-- Swiss Ephemerisは、必要に応じて検証用に使う。
-- Swiss Ephemeris関連の実装が必要な場合は、既存リポジトリへの直接依存ではなく代替実装を検討する。
+`bodies` に次の天体を出力する。
 
-### Specification Topics
-
-- コマンド名は `astrocli` とする。
-- 初期MVPの占術体系は西洋占星術に固定する。
-- 初期MVPのチャート種別はネイタルに固定する。
-- 入力日時は最初の位置引数で受け取る。
-- 入力日時の書式は `"yyyy-MM-dd HH:mm:ss zzz"` に固定する。
-- 初期MVPで出力する天体は太陽と月だけにする。
-- 出力はJSONで標準出力に出す。
-- JSON以外の書式やファイル出力は将来対応とする。
-- 初期検証方針を決める。
-
-### Initial CLI Shape
-
-将来の基本形:
-
-```text
-astrocli 日時 --占いの種類 --細かなオプション
-```
-
-初期MVPの基本形:
-
-```text
-astrocli 日時
-```
-
-日時の書式:
-
-```text
-"2025-09-04 22:00:00 +09:00"
-```
-
-初期MVPでは、日時に時差を含めて引数から受け取る。
-
-初期MVPでは、占術体系とチャート種別は固定値として扱う。
-
-- `system`: `western`
-- `chart`: `natal`
-
-将来追加予定:
-
-- `--system western|vedic|bazi|ziwei`
-- `--chart natal|transit|progressed|aspect`
-- `--config config.json`
-- CLI引数による設定ファイル値の上書き
-- JSON設定ファイルによるタイムゾーン指定
-- CLI引数からJSON設定ファイルを保存するオプション
-
-### Divination Model
-
-占いの種類は、占術とサブカテゴリを分けて扱う。
-
-占術の候補:
-
-- 西洋占星術
-- インド占星術
-- 四柱推命
-- 紫微斗数
-
-サブカテゴリの候補:
-
-- ネイタル
-- トランジット
-- プログレス
-- 2種類のチャートのアスペクト
-
-CLIでは、占術とサブカテゴリの両方を指定できるようにする。
-
-初期MVPでは、占術とサブカテゴリは次の固定値にする。
-
-- 占術: 西洋占星術
-- サブカテゴリ: ネイタル
-
-### Option Presets
-
-占いの種類や細かなオプションは、JSONなどの設定ファイルからインポートできるようにする。
-
-目的:
-
-- 毎回フル指定しなくても使えるようにする。
-- 複雑な占術設定を再利用できるようにする。
-- CLI引数で一部だけ上書きできる余地を残す。
-
-初期MVPでは、JSON設定ファイルのインポートは実装しない。将来のCLI設計として予約する。
-
-将来的には、毎回時差を指定しなくてよいように、JSON設定ファイルからタイムゾーンや既定の時差を読み込めるようにする。
-
-### CLI And JSON Parity
-
-将来的には、CLI引数とJSON設定ファイルの指定項目を相互に対応させる。
-
-設計方針:
-
-- CLI引数で指定できる項目は、JSON設定ファイルでも指定できるようにする。
-- JSON設定ファイルで指定できる項目は、CLI引数でも指定できるようにする。
-- CLI引数とJSON設定ファイルを併用できるようにする。
-- 併用時の優先順位は実装前に決める。
-- CLI引数で指定した内容をJSON設定ファイルとして保存できるオプションを将来追加する。
-- 保存したJSON設定ファイルを使って再実行できるようにする。
-
-初期MVPでは、CLIとJSONの相互変換、JSONインポート、JSON保存は実装しない。ただし、将来追加しやすいようにCLI入力と内部設定モデルを分ける。
-
-### Output
-
-初期MVPの出力はJSONで標準出力に出す。
-
-JSONには少なくとも次の情報を含める。
-
-- `inputDateTime`
-- `utcDateTime`
-- `system`: `western`
-- `chart`: `natal`
-- `bodies.sun`
-- `bodies.moon`
-
-太陽と月の位置には次の値を含める。
-
-- `eclipticLongitude`
-- `sign`
-- `degreeInSign`
-
-### Verification
-
-検証用の固定日時:
-
-```text
-"1989-07-08 05:19:00 +09:00"
-```
-
-検証方針:
-
-- 固定日時の実行結果をスナップショットテストする。
-- Astronomy Engineの計算結果をアプリ出力と比較する。
-- JSONとしてパース可能であることを確認する。
-- `inputDateTime` と `utcDateTime` が期待通りであることを確認する。
-- 太陽と月の `eclipticLongitude`、`sign`、`degreeInSign` が出力されることを確認する。
-
-### Out Of Scope For Initial MVP
-
-- ハウス計算。
-- アスペクト計算。
-- トランジット。
-- プログレス。
-- 2種類のチャート比較。
-- インド占星術。
-- 四柱推命。
-- 紫微斗数。
-- JSON以外の出力形式。
-- ファイル出力。
-- JSON設定ファイルのインポート。
-- JSON設定ファイルによるタイムゾーン指定。
-- CLI引数からJSON設定ファイルを保存する機能。
+- `sun`
+- `moon`
+- `mercury`
+- `venus`
+- `mars`
+- `jupiter`
+- `saturn`
+- `uranus`
+- `neptune`
+- `pluto`
 
 ## Acceptance Criteria
 
-- C#/.NETのCLIプロジェクトが作成されている。
-- `astrocli "1989-07-08 05:19:00 +09:00"` の形式で実行できる。
-- 入力日時の書式 `"yyyy-MM-dd HH:mm:ss zzz"` を受け付ける。
-- 不正な日時書式の場合は、JSONではなくエラーとして分かるメッセージを標準エラーに出し、非0終了する。
-- 出力は標準出力のJSONである。
-- JSONに `inputDateTime`、`utcDateTime`、`system`、`chart`、`bodies.sun`、`bodies.moon` が含まれる。
-- `system` は `western`、`chart` は `natal` である。
-- `bodies.sun` と `bodies.moon` に `eclipticLongitude`、`sign`、`degreeInSign` が含まれる。
-- 固定日時 `"1989-07-08 05:19:00 +09:00"` の実行結果を検証するテストがある。
-- Astronomy Engineの計算結果とアプリ出力を比較するテストがある。
-- READMEに初期MVPの実行例が追記されている。
-- ビルドとテストの手順が `.agents/skills` に反映されている。
+- `astrocli "1989-07-08 05:19:00 +09:00" "35°41’22″N,139°41’30″E"` が成功する。
+- JSON出力の `bodies` に `sun`、`moon`、`mercury`、`venus`、`mars`、`jupiter`、`saturn`、`uranus`、`neptune`、`pluto` が含まれる。
+- 各 `bodies.*` には `name`、`eclipticLongitude`、`sign`、`degreeInSign` が含まれる。
+- 各 `bodies.*.eclipticLongitude` は `15°40’12″` のような60進数文字列である。
+- 各 `bodies.*.degreeInSign` は `15°40’12″` のような60進数文字列である。
+- 既存の `inputDateTime`、`utcDateTime`、`system`、`chart`、`location`、`ascendant` 出力は維持される。
+- 固定日時・固定位置のスナップショットテストで主要10天体の出力を検証する。
+- Astronomy Engineとの比較テストで主要10天体の黄経を検証する。
+- `dotnet build AstroCli.slnx` が成功する。
+- `dotnet test AstroCli.slnx --no-build` が成功する。
 
 ## Current Status
 

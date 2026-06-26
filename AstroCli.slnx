@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AstroCli/AstroCli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AstroCli.Tests/AstroCli.Tests.csproj" />
+  </Folder>
+</Solution>

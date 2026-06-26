@@ -15,7 +15,7 @@ AstroCLIは、コマンドラインからテキストベースの占術チャー
 - アプリの種類はCLIツール。
 - 出力はまずテキストベースにする。
 - 初期機能は、簡単な天文情報の出力。
-- 初期MVPでは、西洋占星術のネイタル固定で、指定日時の太陽と月の位置をJSONで標準出力に出す。
+- 初期MVPでは、西洋占星術のネイタル固定で、指定日時・指定位置の主要10天体とASC（上昇点）の位置をJSONで標準出力に出す。
 - 初期MVPの日時入力は `"2025-09-04 22:00:00 +09:00"` の形式に固定する。
 - 最終的には複数の占術を扱う。
 - 想定する占術は、西洋占星術、インド占星術、四柱推命、紫微斗数。
@@ -35,31 +35,67 @@ AstroCLIは、コマンドラインからテキストベースの占術チャー
 - Swiss Ephemeris関連の既存C#リポジトリは参考にするが、必要に応じて代替を作成する。
 - 占星術ライブラリを使うか、天文ライブラリから占星術出力を組み立てるかは、精度だけでなく設計思想、ライセンス、実装主権のトレードオフとして判断する。
 - JPL DEやSwiss Ephemerisのような高精度暦は便利だが、出力の意味、座標系、時刻系、ハウス計算などの設計判断を明示する必要がある。
+- 初期MVPでは、太陽、月、水星、金星、火星、木星、土星、天王星、海王星、冥王星の位置はtopocentricではなく地心基準で計算する。位置情報はASCや将来のハウス計算など、観測地点の地平線・子午線が関係する要素に使う。
 
 ## Initial MVP
 
-初期MVPでは、西洋占星術のネイタル固定で、指定日時の太陽と月の位置をJSONで標準出力に出す。
+初期MVPでは、西洋占星術のネイタル固定で、指定日時・指定位置の主要10天体とASC（上昇点）の位置をJSONで標準出力に出す。
 
 ビルド:
 
 ```text
-DOTNET_CLI_HOME=/home/ubuntu/astrocli/.dotnet-home dotnet build tests/AstroCli.Tests/AstroCli.Tests.csproj
+dotnet build AstroCli.slnx
 ```
 
 テスト:
 
 ```text
-DOTNET_CLI_HOME=/home/ubuntu/astrocli/.dotnet-home dotnet test tests/AstroCli.Tests/AstroCli.Tests.csproj
+dotnet test AstroCli.slnx
 ```
 
 実行例:
 
 ```text
-DOTNET_CLI_HOME=/home/ubuntu/astrocli/.dotnet-home dotnet build src/AstroCli/AstroCli.csproj
-src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00"
+dotnet build src/AstroCli/AstroCli.csproj
+src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’22″N,139°41’30″E"
 ```
 
-出力には、入力日時、UTC換算日時、占術体系、チャート種別、太陽と月の黄経度数、星座、星座内度数を含める。
+位置情報は `"latitude,longitude"` の1引数で指定する。緯度は `度°分’秒″N/S`、経度は `度°分’秒″E/W` の60進法で指定する。
+
+出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、ASC、主要10天体の黄経度数、星座、星座内度数を含める。天体位置は地心基準で計算する。
+
+度数は60進数文字列で出力する。
+
+例:
+
+```json
+{
+  "location": {
+    "latitude": "35°41’22″N",
+    "longitude": "139°41’30″E"
+  },
+  "ascendant": {
+    "name": "ascendant",
+    "eclipticLongitude": "294°29’53″",
+    "sign": "Capricorn",
+    "degreeInSign": "24°29’53″"
+  },
+  "bodies": {
+    "sun": {
+      "name": "sun",
+      "eclipticLongitude": "105°40’31″",
+      "sign": "Cancer",
+      "degreeInSign": "15°40’31″"
+    },
+    "pluto": {
+      "name": "pluto",
+      "eclipticLongitude": "222°25’55″",
+      "sign": "Scorpio",
+      "degreeInSign": "12°25’55″"
+    }
+  }
+}
+```
 
 ## Project Operation
 

@@ -11,7 +11,7 @@ public static class App
 
     public static int Run(string[] args, TextWriter standardOutput, TextWriter standardError)
     {
-        if (args.Length != 1)
+        if (args.Length != 2)
         {
             WriteUsageError(standardError);
             return 1;
@@ -28,7 +28,13 @@ public static class App
             return 1;
         }
 
-        var request = new ChartRequest(inputDateTime, "western", "natal");
+        if (!GeoLocation.TryParse(args[1], out var location))
+        {
+            WriteUsageError(standardError);
+            return 1;
+        }
+
+        var request = new ChartRequest(inputDateTime, location!, "western", "natal");
         var chart = NatalChartCalculator.Calculate(request);
         var json = JsonSerializer.Serialize(chart, JsonOptions.Default);
         standardOutput.WriteLine(json);
@@ -37,7 +43,7 @@ public static class App
 
     private static void WriteUsageError(TextWriter standardError)
     {
-        standardError.WriteLine("Invalid arguments. Usage: astrocli \"yyyy-MM-dd HH:mm:ss zzz\"");
+        standardError.WriteLine("Invalid arguments. Usage: astrocli \"yyyy-MM-dd HH:mm:ss zzz\" \"35°41’22″N,139°41’30″E\"");
     }
 }
 

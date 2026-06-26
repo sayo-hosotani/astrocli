@@ -7,14 +7,13 @@
 ## Current Command
 
 ```text
-DOTNET_CLI_HOME=/home/ubuntu/astrocli/.dotnet-home dotnet build tests/AstroCli.Tests/AstroCli.Tests.csproj
+dotnet build AstroCli.slnx
 ```
 
 ## Notes
 
-- `DOTNET_CLI_HOME` は、.NET CLIがホームディレクトリ配下にキャッシュを書こうとして失敗する環境を避けるため、ワークスペース内に向ける。
-- テストプロジェクトをビルドすると、参照しているCLIプロジェクトもビルドされる。
-- 現時点ではSolutionファイルを使用しない。
+- `.slnx` をビルドすると、CLIプロジェクトとテストプロジェクトの両方がビルドされる。
+- サンドボックス環境でホームディレクトリ配下への書き込みやVSTestのソケット作成が失敗する場合は、writable rootsと `dotnet` のprefix ruleを確認する。
 
 ## Checkpoints
 
