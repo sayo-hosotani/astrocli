@@ -30,9 +30,9 @@ AstroCLIは、コマンドラインからテキストベースの占術チャー
 - 実装言語はC#。
 - .NETはサポート中の最新LTSを優先する。
 - 2026-06-25時点では .NET 10 が最新LTS。
-- 天文情報の取得には `cosinekitty/astronomy` を主候補として検討する。
-- Swiss Ephemerisは検証用に必要な場合だけ使う。
-- Swiss Ephemeris関連の既存C#リポジトリは参考にするが、必要に応じて代替を作成する。
+- 天文情報の取得には `SharpAstrology.SwissEph` のMoshierモードを使用する。
+- Moshierモードでは、Swiss Ephemeris `.se1` ファイル、JPL `.eph` ファイル、C由来のネイティブDLLは使用しない。
+- `SharpAstrology.SwissEph` はAGPL-3.0であり、このライセンス制約を承知のうえで使用する。
 - 占星術ライブラリを使うか、天文ライブラリから占星術出力を組み立てるかは、精度だけでなく設計思想、ライセンス、実装主権のトレードオフとして判断する。
 - JPL DEやSwiss Ephemerisのような高精度暦は便利だが、出力の意味、座標系、時刻系、ハウス計算などの設計判断を明示する必要がある。
 - 初期MVPでは、太陽、月、水星、金星、火星、木星、土星、天王星、海王星、冥王星の位置はtopocentricではなく地心基準で計算する。位置情報はASCや将来のハウス計算など、観測地点の地平線・子午線が関係する要素に使う。
@@ -62,7 +62,7 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
 
 位置情報は `"latitude,longitude"` の1引数で指定する。緯度は `度°分’秒″N/S`、経度は `度°分’秒″E/W` の60進法で指定する。
 
-出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、ASC、主要10天体の黄経度数、星座、星座内度数を含める。天体位置は地心基準で計算する。
+出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、ASC、主要10天体の黄経度数、星座、星座内度数を含める。天体位置とASCは `SharpAstrology.SwissEph` のMoshierモードで計算する。
 
 度数は60進数文字列で出力する。
 
@@ -76,9 +76,9 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
   },
   "ascendant": {
     "name": "ascendant",
-    "eclipticLongitude": "294°29’53″",
-    "sign": "Capricorn",
-    "degreeInSign": "24°29’53″"
+    "eclipticLongitude": "114°29’59″",
+    "sign": "Cancer",
+    "degreeInSign": "24°29’59″"
   },
   "bodies": {
     "sun": {
@@ -89,9 +89,9 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
     },
     "pluto": {
       "name": "pluto",
-      "eclipticLongitude": "222°25’55″",
+      "eclipticLongitude": "222°25’53″",
       "sign": "Scorpio",
-      "degreeInSign": "12°25’55″"
+      "degreeInSign": "12°25’53″"
     }
   }
 }

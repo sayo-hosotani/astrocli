@@ -1,5 +1,7 @@
 using System.Text.Json;
-using CosineKitty;
+using SharpAstrology.Enums;
+using SharpAstrology.Ephemerides;
+using SharpAstrology.Interfaces;
 
 namespace AstroCli.Tests;
 
@@ -10,16 +12,16 @@ public class AppTests
 
     private static readonly BodyCase[] BodyCases =
     [
-        new("sun", Body.Sun, "105°40’31″", "Cancer", "15°40’31″"),
-        new("moon", Body.Moon, "160°52’04″", "Virgo", "10°52’04″"),
-        new("mercury", Body.Mercury, "93°32’43″", "Cancer", "3°32’43″"),
-        new("venus", Body.Venus, "130°22’43″", "Leo", "10°22’43″"),
-        new("mars", Body.Mars, "133°14’35″", "Leo", "13°14’35″"),
-        new("jupiter", Body.Jupiter, "85°01’36″", "Gemini", "25°01’36″"),
-        new("saturn", Body.Saturn, "280°13’48″", "Capricorn", "10°13’48″"),
-        new("uranus", Body.Uranus, "272°49’18″", "Capricorn", "2°49’18″"),
-        new("neptune", Body.Neptune, "280°52’08″", "Capricorn", "10°52’08″"),
-        new("pluto", Body.Pluto, "222°25’55″", "Scorpio", "12°25’55″")
+        new("sun", Planets.Sun, "105°40’31″", "Cancer", "15°40’31″"),
+        new("moon", Planets.Moon, "160°52’03″", "Virgo", "10°52’03″"),
+        new("mercury", Planets.Mercury, "93°32’41″", "Cancer", "3°32’41″"),
+        new("venus", Planets.Venus, "130°22’42″", "Leo", "10°22’42″"),
+        new("mars", Planets.Mars, "133°14’34″", "Leo", "13°14’34″"),
+        new("jupiter", Planets.Jupiter, "85°01’36″", "Gemini", "25°01’36″"),
+        new("saturn", Planets.Saturn, "280°13’48″", "Capricorn", "10°13’48″"),
+        new("uranus", Planets.Uranus, "272°49’23″", "Capricorn", "2°49’23″"),
+        new("neptune", Planets.Neptune, "280°52’10″", "Capricorn", "10°52’10″"),
+        new("pluto", Planets.Pluto, "222°25’53″", "Scorpio", "12°25’53″")
     ];
 
     [Fact]
@@ -47,9 +49,9 @@ public class AppTests
 
         AssertBodySnapshot(
             root.GetProperty("ascendant"),
-            "294°29’53″",
-            "Capricorn",
-            "24°29’53″");
+            "114°29’59″",
+            "Cancer",
+            "24°29’59″");
         var bodies = root.GetProperty("bodies");
         foreach (var body in BodyCases)
         {
@@ -62,7 +64,7 @@ public class AppTests
     }
 
     [Fact]
-    public void Calculate_UsesAstronomyEngineForBodyLongitudes()
+    public void Calculate_UsesSharpAstrologySwissEphMoshierForBodyLongitudes()
     {
         var input = DateTimeOffset.ParseExact(
             VerificationDateTime,
@@ -74,8 +76,23 @@ public class AppTests
 
         foreach (var body in BodyCases)
         {
-            Assert.Equal(ExpectedLongitude(body.Body, input), BodyPositionFor(chart, body.JsonName).EclipticLongitude);
+            Assert.Equal(ExpectedLongitude(body.Planet, input), BodyPositionFor(chart, body.JsonName).EclipticLongitude);
         }
+    }
+
+    [Fact]
+    public void Calculate_UsesSharpAstrologySwissEphMoshierForAscendant()
+    {
+        var input = DateTimeOffset.ParseExact(
+            VerificationDateTime,
+            "yyyy-MM-dd HH:mm:ss zzz",
+            System.Globalization.CultureInfo.InvariantCulture);
+        var location = new GeoLocation(35.68944444444445, 139.69166666666666);
+        var request = new ChartRequest(input, location, "western", "natal");
+
+        var chart = NatalChartCalculator.Calculate(request);
+
+        Assert.Equal(ExpectedAscendant(input, location), chart.Ascendant.EclipticLongitude);
     }
 
     [Fact]
@@ -164,23 +181,29 @@ public class AppTests
         };
     }
 
-    private static string ExpectedLongitude(Body body, DateTimeOffset input)
+    private static string ExpectedLongitude(Planets planet, DateTimeOffset input)
     {
-        var time = new AstroTime(input.ToUniversalTime().UtcDateTime);
-        var geoVector = Astronomy.GeoVector(body, time, Aberration.Corrected);
-        var ecliptic = Astronomy.EquatorialToEcliptic(geoVector);
-        var longitude = ecliptic.elon % 360.0;
-        if (longitude < 0)
-        {
-            longitude += 360.0;
-        }
+        using IEphemerides ephemerides = new SwissEphemeridesService(ephType: EphType.Moshier).CreateContext();
+        var position = ephemerides.PlanetsPosition(planet, input.ToUniversalTime().UtcDateTime);
 
-        return SexagesimalDegreeFormatter.Format(longitude);
+        return SexagesimalDegreeFormatter.Format(position.Longitude);
+    }
+
+    private static string ExpectedAscendant(DateTimeOffset input, GeoLocation location)
+    {
+        using IEphemerides ephemerides = new SwissEphemeridesService(ephType: EphType.Moshier).CreateContext();
+        var houses = ephemerides.HouseCuspPositions(
+            input.ToUniversalTime().UtcDateTime,
+            location.Latitude,
+            location.Longitude,
+            HouseSystems.Placidus);
+
+        return SexagesimalDegreeFormatter.Format(houses.Cross[Cross.Asc]);
     }
 
     private sealed record BodyCase(
         string JsonName,
-        Body Body,
+        Planets Planet,
         string EclipticLongitude,
         string Sign,
         string DegreeInSign);

@@ -13,7 +13,7 @@ dotnet test AstroCli.slnx
 ## Notes
 
 - VSTestはローカルソケットを作成するため、サンドボックス環境では権限エラーになる場合がある。その場合はwritable rootsと `dotnet` のprefix ruleを確認する。
-- テストでは、固定日時 `"1989-07-08 05:19:00 +09:00"` と固定位置 `"35°41’22″N,139°41’30″E"` のJSON出力、Astronomy Engineとの比較、位置情報パース、不正入力のエラー動作を確認する。
+- テストでは、固定日時 `"1989-07-08 05:19:00 +09:00"` と固定位置 `"35°41’22″N,139°41’30″E"` のJSON出力、SharpAstrology.SwissEph Moshierとの比較、位置情報パース、不正入力のエラー動作を確認する。
 
 ## Documentation Check
 

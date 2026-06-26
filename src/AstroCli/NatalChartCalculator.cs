@@ -1,16 +1,36 @@
-using CosineKitty;
+using SharpAstrology.DataModels;
+using SharpAstrology.Enums;
+using SharpAstrology.Ephemerides;
+using SharpAstrology.Interfaces;
 
 namespace AstroCli;
 
 public static class NatalChartCalculator
 {
-    private const double EclipticObliquityDegrees = 23.4392911;
+    private static readonly BodyDefinition[] BodyDefinitions =
+    [
+        new("sun", Planets.Sun),
+        new("moon", Planets.Moon),
+        new("mercury", Planets.Mercury),
+        new("venus", Planets.Venus),
+        new("mars", Planets.Mars),
+        new("jupiter", Planets.Jupiter),
+        new("saturn", Planets.Saturn),
+        new("uranus", Planets.Uranus),
+        new("neptune", Planets.Neptune),
+        new("pluto", Planets.Pluto)
+    ];
 
     public static ChartOutput Calculate(ChartRequest request)
     {
         var utcDateTime = request.InputDateTime.ToUniversalTime();
-        var astroTime = new AstroTime(utcDateTime.UtcDateTime);
-        var ascendant = CalculateAscendant(request.Location, astroTime);
+        using IEphemerides ephemerides = new SwissEphemeridesService(ephType: EphType.Moshier).CreateContext();
+        var housePositions = ephemerides.HouseCuspPositions(
+            utcDateTime.UtcDateTime,
+            request.Location.Latitude,
+            request.Location.Longitude,
+            HouseSystems.Placidus);
+        var ascendant = CreatePosition("ascendant", housePositions.Cross[Cross.Asc]);
 
         return new ChartOutput(
             FormatInputDateTime(request.InputDateTime),
@@ -20,48 +40,31 @@ public static class NatalChartCalculator
             new LocationOutput(request.Location.FormatLatitude(), request.Location.FormatLongitude()),
             ascendant,
             new BodiesOutput(
-                CalculateBody("sun", Body.Sun, astroTime),
-                CalculateBody("moon", Body.Moon, astroTime),
-                CalculateBody("mercury", Body.Mercury, astroTime),
-                CalculateBody("venus", Body.Venus, astroTime),
-                CalculateBody("mars", Body.Mars, astroTime),
-                CalculateBody("jupiter", Body.Jupiter, astroTime),
-                CalculateBody("saturn", Body.Saturn, astroTime),
-                CalculateBody("uranus", Body.Uranus, astroTime),
-                CalculateBody("neptune", Body.Neptune, astroTime),
-                CalculateBody("pluto", Body.Pluto, astroTime)));
+                CalculateBody(ephemerides, BodyDefinitions[0], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[1], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[2], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[3], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[4], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[5], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[6], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[7], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[8], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, BodyDefinitions[9], utcDateTime.UtcDateTime)));
     }
 
-    private static BodyPosition CalculateBody(string name, Body body, AstroTime time)
+    private static BodyPosition CalculateBody(IEphemerides ephemerides, BodyDefinition body, DateTime utcDateTime)
     {
-        var geoVector = Astronomy.GeoVector(body, time, Aberration.Corrected);
-        var ecliptic = Astronomy.EquatorialToEcliptic(geoVector);
-        var longitude = NormalizeDegrees(ecliptic.elon);
+        var position = ephemerides.PlanetsPosition(body.Planet, utcDateTime);
+        return CreatePosition(body.Name, position.Longitude);
+    }
+
+    private static BodyPosition CreatePosition(string name, double longitude)
+    {
+        longitude = NormalizeDegrees(longitude);
         var sign = Zodiac.SignForLongitude(longitude);
 
         return new BodyPosition(
             name,
-            SexagesimalDegreeFormatter.Format(longitude),
-            sign.Name,
-            SexagesimalDegreeFormatter.Format(sign.DegreeInSign));
-    }
-
-    private static BodyPosition CalculateAscendant(GeoLocation location, AstroTime time)
-    {
-        var greenwichSiderealDegrees = Astronomy.SiderealTime(time) * 15.0;
-        var localSiderealDegrees = NormalizeDegrees(greenwichSiderealDegrees + location.Longitude);
-        var localSiderealRadians = DegreesToRadians(localSiderealDegrees);
-        var latitudeRadians = DegreesToRadians(location.Latitude);
-        var obliquityRadians = DegreesToRadians(EclipticObliquityDegrees);
-
-        var y = -Math.Cos(localSiderealRadians);
-        var x = (Math.Sin(localSiderealRadians) * Math.Cos(obliquityRadians))
-            + (Math.Tan(latitudeRadians) * Math.Sin(obliquityRadians));
-        var longitude = NormalizeDegrees(RadiansToDegrees(Math.Atan2(y, x)));
-        var sign = Zodiac.SignForLongitude(longitude);
-
-        return new BodyPosition(
-            "ascendant",
             SexagesimalDegreeFormatter.Format(longitude),
             sign.Name,
             SexagesimalDegreeFormatter.Format(sign.DegreeInSign));
@@ -83,13 +86,5 @@ public static class NatalChartCalculator
         return normalized < 0 ? normalized + 360.0 : normalized;
     }
 
-    private static double DegreesToRadians(double degrees)
-    {
-        return degrees * Math.PI / 180.0;
-    }
-
-    private static double RadiansToDegrees(double radians)
-    {
-        return radians * 180.0 / Math.PI;
-    }
+    private sealed record BodyDefinition(string Name, Planets Planet);
 }
