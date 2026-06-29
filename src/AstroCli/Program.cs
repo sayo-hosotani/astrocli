@@ -1,3 +1,3 @@
 using AstroCli;
 
-return App.Run(args, Console.Out, Console.Error);
+return App.Run(args, Console.In, Console.Out, Console.Error);
