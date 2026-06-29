@@ -13,6 +13,7 @@ public sealed class AsteroidBodyPositionCalculator
 
     public async Task<IReadOnlyList<BodyPosition>> CalculateAsync(
         DateTimeOffset at,
+        Func<double, string?>? houseForLongitude = null,
         CancellationToken cancellationToken = default)
     {
         var time = new AstroTime(at.ToUniversalTime().UtcDateTime);
@@ -33,7 +34,7 @@ public sealed class AsteroidBodyPositionCalculator
             var geocentricEqj = CalculateLightTimeCorrectedVector(time, stateVectors, earthState, index);
             var geocentricEcliptic = Astronomy.RotateVector(Astronomy.Rotation_EQJ_ECT(time), geocentricEqj);
             var spherical = Astronomy.SphereFromVector(geocentricEcliptic);
-            positions.Add(CreatePosition(target.JsonName, spherical.lon));
+            positions.Add(CreatePosition(target.JsonName, spherical.lon, houseForLongitude));
         }
 
         return positions;
@@ -66,7 +67,7 @@ public sealed class AsteroidBodyPositionCalculator
             time);
     }
 
-    private static BodyPosition CreatePosition(string name, double longitude)
+    private static BodyPosition CreatePosition(string name, double longitude, Func<double, string?>? houseForLongitude)
     {
         longitude = NormalizeDegrees(longitude);
         var sign = Zodiac.SignForLongitude(longitude);
@@ -75,7 +76,8 @@ public sealed class AsteroidBodyPositionCalculator
             name,
             SexagesimalDegreeFormatter.Format(longitude),
             sign.Name,
-            SexagesimalDegreeFormatter.Format(sign.DegreeInSign));
+            SexagesimalDegreeFormatter.Format(sign.DegreeInSign),
+            houseForLongitude?.Invoke(longitude));
     }
 
     private static double NormalizeDegrees(double value)

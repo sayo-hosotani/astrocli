@@ -102,13 +102,15 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
       "name": "sun",
       "eclipticLongitude": "105°40’31″",
       "sign": "Cancer",
-      "degreeInSign": "15°40’31″"
+      "degreeInSign": "15°40’31″",
+      "house": "house12"
     },
     "pluto": {
       "name": "pluto",
       "eclipticLongitude": "222°25’53″",
       "sign": "Scorpio",
-      "degreeInSign": "12°25’53″"
+      "degreeInSign": "12°25’53″",
+      "house": "house4"
     }
   },
   "asteroids": {
@@ -116,13 +118,15 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
       "name": "chiron",
       "eclipticLongitude": "95°12’34″",
       "sign": "Cancer",
-      "degreeInSign": "5°12’34″"
+      "degreeInSign": "5°12’34″",
+      "house": "house12"
     },
     "ceres": {
       "name": "ceres",
       "eclipticLongitude": "123°45’56″",
       "sign": "Leo",
-      "degreeInSign": "3°45’56″"
+      "degreeInSign": "3°45’56″",
+      "house": "house1"
     }
   },
   "angles": {
@@ -156,37 +160,43 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
       "name": "northNode",
       "eclipticLongitude": "326°24’19″",
       "sign": "Aquarius",
-      "degreeInSign": "26°24’19″"
+      "degreeInSign": "26°24’19″",
+      "house": "house8"
     },
     "southNode": {
       "name": "southNode",
       "eclipticLongitude": "146°24’19″",
       "sign": "Leo",
-      "degreeInSign": "26°24’19″"
+      "degreeInSign": "26°24’19″",
+      "house": "house2"
     },
     "partOfFortune": {
       "name": "partOfFortune",
       "eclipticLongitude": "169°45’34″",
       "sign": "Virgo",
-      "degreeInSign": "19°45’34″"
+      "degreeInSign": "19°45’34″",
+      "house": "house3"
     },
     "vertex": {
       "name": "vertex",
       "eclipticLongitude": "248°46’52″",
       "sign": "Sagittarius",
-      "degreeInSign": "8°46’52″"
+      "degreeInSign": "8°46’52″",
+      "house": "house5"
     },
     "antiVertex": {
       "name": "antiVertex",
       "eclipticLongitude": "68°46’52″",
       "sign": "Gemini",
-      "degreeInSign": "8°46’52″"
+      "degreeInSign": "8°46’52″",
+      "house": "house11"
     },
     "lilith": {
       "name": "lilith",
       "eclipticLongitude": "201°45’48″",
       "sign": "Libra",
-      "degreeInSign": "21°45’48″"
+      "degreeInSign": "21°45’48″",
+      "house": "house4"
     }
   }
 }

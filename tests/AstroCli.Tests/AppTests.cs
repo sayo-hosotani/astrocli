@@ -19,39 +19,39 @@ public class AppTests
 
     private static readonly BodyCase[] PlanetCases =
     [
-        new("sun", Planets.Sun, "105°40’31″", "Cancer", "15°40’31″"),
-        new("moon", Planets.Moon, "160°52’03″", "Virgo", "10°52’03″"),
-        new("mercury", Planets.Mercury, "93°32’41″", "Cancer", "3°32’41″"),
-        new("venus", Planets.Venus, "130°22’42″", "Leo", "10°22’42″"),
-        new("mars", Planets.Mars, "133°14’34″", "Leo", "13°14’34″"),
-        new("jupiter", Planets.Jupiter, "85°01’36″", "Gemini", "25°01’36″"),
-        new("saturn", Planets.Saturn, "280°13’48″", "Capricorn", "10°13’48″"),
-        new("uranus", Planets.Uranus, "272°49’23″", "Capricorn", "2°49’23″"),
-        new("neptune", Planets.Neptune, "280°52’10″", "Capricorn", "10°52’10″"),
-        new("pluto", Planets.Pluto, "222°25’53″", "Scorpio", "12°25’53″")
+        new("sun", Planets.Sun, "105°40’31″", "Cancer", "15°40’31″", "house12"),
+        new("moon", Planets.Moon, "160°52’03″", "Virgo", "10°52’03″", "house3"),
+        new("mercury", Planets.Mercury, "93°32’41″", "Cancer", "3°32’41″", "house12"),
+        new("venus", Planets.Venus, "130°22’42″", "Leo", "10°22’42″", "house1"),
+        new("mars", Planets.Mars, "133°14’34″", "Leo", "13°14’34″", "house1"),
+        new("jupiter", Planets.Jupiter, "85°01’36″", "Gemini", "25°01’36″", "house12"),
+        new("saturn", Planets.Saturn, "280°13’48″", "Capricorn", "10°13’48″", "house6"),
+        new("uranus", Planets.Uranus, "272°49’23″", "Capricorn", "2°49’23″", "house6"),
+        new("neptune", Planets.Neptune, "280°52’10″", "Capricorn", "10°52’10″", "house6"),
+        new("pluto", Planets.Pluto, "222°25’53″", "Scorpio", "12°25’53″", "house4")
     ];
 
     private static readonly BodyCase[] ObjectCases =
     [
-        new("northNode", Planets.NorthNode, "326°24’19″", "Aquarius", "26°24’19″"),
-        new("southNode", Planets.SouthNode, "146°24’19″", "Leo", "26°24’19″")
+        new("northNode", Planets.NorthNode, "326°24’19″", "Aquarius", "26°24’19″", "house8"),
+        new("southNode", Planets.SouthNode, "146°24’19″", "Leo", "26°24’19″", "house2")
     ];
 
     private static readonly AsteroidCase[] AdditionalObjectCases =
     [
-        new("partOfFortune", "169°45’34″", "Virgo", "19°45’34″"),
-        new("vertex", "248°46’52″", "Sagittarius", "8°46’52″"),
-        new("antiVertex", "68°46’52″", "Gemini", "8°46’52″"),
-        new("lilith", "201°45’48″", "Libra", "21°45’48″")
+        new("partOfFortune", "169°45’34″", "Virgo", "19°45’34″", "house3"),
+        new("vertex", "248°46’52″", "Sagittarius", "8°46’52″", "house5"),
+        new("antiVertex", "68°46’52″", "Gemini", "8°46’52″", "house11"),
+        new("lilith", "201°45’48″", "Libra", "21°45’48″", "house4")
     ];
 
     private static readonly AsteroidCase[] AsteroidCases =
     [
-        new("chiron", "15°00’00″", "Aries", "15°00’00″"),
-        new("ceres", "45°00’10″", "Taurus", "15°00’10″"),
-        new("pallas", "75°00’17″", "Gemini", "15°00’17″"),
-        new("juno", "105°00’22″", "Cancer", "15°00’22″"),
-        new("vesta", "135°00’18″", "Leo", "15°00’18″")
+        new("chiron", "15°00’00″", "Aries", "15°00’00″", "house10"),
+        new("ceres", "45°00’10″", "Taurus", "15°00’10″", "house10"),
+        new("pallas", "75°00’17″", "Gemini", "15°00’17″", "house11"),
+        new("juno", "105°00’22″", "Cancer", "15°00’22″", "house12"),
+        new("vesta", "135°00’18″", "Leo", "15°00’18″", "house1")
     ];
 
     [Fact]
@@ -108,7 +108,8 @@ public class AppTests
                 planets.GetProperty(planet.JsonName),
                 planet.EclipticLongitude,
                 planet.Sign,
-                planet.DegreeInSign);
+                planet.DegreeInSign,
+                planet.House);
         }
 
         var asteroids = root.GetProperty("asteroids");
@@ -118,7 +119,8 @@ public class AppTests
                 asteroids.GetProperty(asteroid.JsonName),
                 asteroid.EclipticLongitude,
                 asteroid.Sign,
-                asteroid.DegreeInSign);
+                asteroid.DegreeInSign,
+                asteroid.House);
         }
 
         var angles = root.GetProperty("angles");
@@ -134,7 +136,8 @@ public class AppTests
                 objects.GetProperty(body.JsonName),
                 body.EclipticLongitude,
                 body.Sign,
-                body.DegreeInSign);
+                body.DegreeInSign,
+                body.House);
         }
 
         foreach (var body in AdditionalObjectCases)
@@ -143,7 +146,8 @@ public class AppTests
                 objects.GetProperty(body.JsonName),
                 body.EclipticLongitude,
                 body.Sign,
-                body.DegreeInSign);
+                body.DegreeInSign,
+                body.House);
         }
     }
 
@@ -212,7 +216,7 @@ public class AppTests
 
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
-        AssertBodySnapshot(chart.Objects.PartOfFortune, "156°19’33″", "Virgo", "6°19’33″");
+        AssertBodySnapshot(chart.Objects.PartOfFortune, "156°19’33″", "Virgo", "6°19’33″", "house4");
         Assert.Equal(ExpectedNightPartOfFortune(input, location), chart.Objects.PartOfFortune.EclipticLongitude);
     }
 
@@ -249,7 +253,8 @@ public class AppTests
                 BodyPositionFor(chart, asteroid.JsonName),
                 asteroid.EclipticLongitude,
                 asteroid.Sign,
-                asteroid.DegreeInSign);
+                asteroid.DegreeInSign,
+                asteroid.House);
         }
     }
 
@@ -311,7 +316,12 @@ public class AppTests
         Assert.Null(location);
     }
 
-    private static void AssertBodySnapshot(JsonElement body, string longitude, string sign, string degreeInSign)
+    private static void AssertBodySnapshot(
+        JsonElement body,
+        string longitude,
+        string sign,
+        string degreeInSign,
+        string? house = null)
     {
         Assert.Equal(JsonValueKind.String, body.GetProperty("eclipticLongitude").ValueKind);
         Assert.Equal(JsonValueKind.String, body.GetProperty("sign").ValueKind);
@@ -319,13 +329,29 @@ public class AppTests
         Assert.Equal(longitude, body.GetProperty("eclipticLongitude").GetString());
         Assert.Equal(sign, body.GetProperty("sign").GetString());
         Assert.Equal(degreeInSign, body.GetProperty("degreeInSign").GetString());
+
+        if (house is null)
+        {
+            Assert.False(body.TryGetProperty("house", out _));
+        }
+        else
+        {
+            Assert.Equal(JsonValueKind.String, body.GetProperty("house").ValueKind);
+            Assert.Equal(house, body.GetProperty("house").GetString());
+        }
     }
 
-    private static void AssertBodySnapshot(BodyPosition body, string longitude, string sign, string degreeInSign)
+    private static void AssertBodySnapshot(
+        BodyPosition body,
+        string longitude,
+        string sign,
+        string degreeInSign,
+        string? house = null)
     {
         Assert.Equal(longitude, body.EclipticLongitude);
         Assert.Equal(sign, body.Sign);
         Assert.Equal(degreeInSign, body.DegreeInSign);
+        Assert.Equal(house, body.House);
     }
 
     private static BodyPosition BodyPositionFor(ChartOutput chart, string jsonName)
@@ -434,13 +460,15 @@ public class AppTests
         Planets Planet,
         string EclipticLongitude,
         string Sign,
-        string DegreeInSign);
+        string DegreeInSign,
+        string House);
 
     private sealed record AsteroidCase(
         string JsonName,
         string EclipticLongitude,
         string Sign,
-        string DegreeInSign);
+        string DegreeInSign,
+        string House);
 
     private sealed class FakeAsteroidHorizonsClient : IHorizonsClient
     {

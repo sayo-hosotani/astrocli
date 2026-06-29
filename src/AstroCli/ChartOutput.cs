@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AstroCli;
 
 public sealed record ChartOutput(
@@ -71,4 +73,6 @@ public sealed record BodyPosition(
     string Name,
     string EclipticLongitude,
     string Sign,
-    string DegreeInSign);
+    string DegreeInSign,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? House = null);
