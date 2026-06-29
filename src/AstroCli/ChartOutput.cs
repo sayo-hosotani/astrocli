@@ -61,7 +61,11 @@ public sealed record AnglesOutput(
 
 public sealed record ObjectsOutput(
     BodyPosition NorthNode,
-    BodyPosition SouthNode);
+    BodyPosition SouthNode,
+    BodyPosition PartOfFortune,
+    BodyPosition Vertex,
+    BodyPosition AntiVertex,
+    BodyPosition Lilith);
 
 public sealed record BodyPosition(
     string Name,

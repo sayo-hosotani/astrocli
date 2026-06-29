@@ -66,7 +66,9 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
 
 位置情報は `"latitude,longitude"` の1引数で指定する。緯度は `度°分’秒″N/S`、経度は `度°分’秒″E/W` の60進法で指定する。
 
-出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、True Nodeのノースノード/サウスノードの黄経度数、星座、星座内度数を含める。天体位置、ノード、アングル、ハウスカスプは `SharpAstrology.SwissEph` のMoshierモードで計算する。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
+出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、感受点（True Nodeのノースノード/サウスノード、Part of Fortune、Vertex、Anti Vertex、Lilith）の黄経度数、星座、星座内度数を含める。天体位置、ノード、アングル、ハウスカスプ、Vertex、Lilithは `SharpAstrology.SwissEph` のMoshierモードで計算する。Part of FortuneはASC、太陽、月から算出し、太陽が地平線上なら昼式 `ASC + Moon - Sun`、地平線下なら夜式 `ASC + Sun - Moon` を使う。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
+
+Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の osculating apogee（月の瞬時の遠地点。ブラックムーンやNatural Lilithと呼ばれることがある、天文学的な月の遠地点方向）の黄経を計算して出力する。ツールは月軌道楕円の空の焦点を直接計算しているわけではない。リリスは物理天体ではなく、占星術上は月の遠地点や月軌道楕円の空の焦点として説明されることがあるが、この出力では天文学的な月の遠地点方向を採用する。外部検証値と約2分の差が残っているが、Lilith自体が計算方式や採用する遠地点の扱いによって差が出る感受点であるため、現時点ではこの差分を許容する。
 
 度数は60進数文字列で出力する。
 
@@ -161,6 +163,30 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
       "eclipticLongitude": "146°24’19″",
       "sign": "Leo",
       "degreeInSign": "26°24’19″"
+    },
+    "partOfFortune": {
+      "name": "partOfFortune",
+      "eclipticLongitude": "169°45’34″",
+      "sign": "Virgo",
+      "degreeInSign": "19°45’34″"
+    },
+    "vertex": {
+      "name": "vertex",
+      "eclipticLongitude": "248°46’52″",
+      "sign": "Sagittarius",
+      "degreeInSign": "8°46’52″"
+    },
+    "antiVertex": {
+      "name": "antiVertex",
+      "eclipticLongitude": "68°46’52″",
+      "sign": "Gemini",
+      "degreeInSign": "8°46’52″"
+    },
+    "lilith": {
+      "name": "lilith",
+      "eclipticLongitude": "201°45’48″",
+      "sign": "Libra",
+      "degreeInSign": "21°45’48″"
     }
   }
 }

@@ -3,12 +3,16 @@ using CosineKitty;
 using SharpAstrology.Enums;
 using SharpAstrology.Ephemerides;
 using SharpAstrology.Interfaces;
+using SharpAstrology.SwissEphemerides;
+using SharpAstrology.SwissEphemerides.Application.Bodies;
+using SharpAstrology.SwissEphemerides.Domain.Time;
 
 namespace AstroCli.Tests;
 
 public class AppTests
 {
     private const string VerificationDateTime = "1989-07-08 05:19:00 +09:00";
+    private const string NightChartDateTime = "1991-06-06 04:05:00 +09:00";
     private const string VerificationLocation = "36°24’00″N,139°20’00″E";
     private const double VerificationLatitude = 36.4;
     private const double VerificationLongitude = 139.33333333333334;
@@ -31,6 +35,14 @@ public class AppTests
     [
         new("northNode", Planets.NorthNode, "326°24’19″", "Aquarius", "26°24’19″"),
         new("southNode", Planets.SouthNode, "146°24’19″", "Leo", "26°24’19″")
+    ];
+
+    private static readonly AsteroidCase[] AdditionalObjectCases =
+    [
+        new("partOfFortune", "169°45’34″", "Virgo", "19°45’34″"),
+        new("vertex", "248°46’52″", "Sagittarius", "8°46’52″"),
+        new("antiVertex", "68°46’52″", "Gemini", "8°46’52″"),
+        new("lilith", "201°45’48″", "Libra", "21°45’48″")
     ];
 
     private static readonly AsteroidCase[] AsteroidCases =
@@ -124,6 +136,15 @@ public class AppTests
                 body.Sign,
                 body.DegreeInSign);
         }
+
+        foreach (var body in AdditionalObjectCases)
+        {
+            AssertBodySnapshot(
+                objects.GetProperty(body.JsonName),
+                body.EclipticLongitude,
+                body.Sign,
+                body.DegreeInSign);
+        }
     }
 
     [Fact]
@@ -177,6 +198,37 @@ public class AppTests
         Assert.Equal(chart.Angles.Asc.EclipticLongitude, chart.Houses.Cusps.House1.EclipticLongitude);
         Assert.Equal(ExpectedHouseCusp(input, location, Houses.House1), chart.Houses.Cusps.House1.EclipticLongitude);
         Assert.Equal(ExpectedHouseCusp(input, location, Houses.House10), chart.Houses.Cusps.House10.EclipticLongitude);
+    }
+
+    [Fact]
+    public void Calculate_UsesNightFormulaForPartOfFortuneWhenSunIsBelowHorizon()
+    {
+        var input = DateTimeOffset.ParseExact(
+            NightChartDateTime,
+            "yyyy-MM-dd HH:mm:ss zzz",
+            System.Globalization.CultureInfo.InvariantCulture);
+        var location = new GeoLocation(VerificationLatitude, VerificationLongitude);
+        var request = new ChartRequest(input, location, "western", "natal");
+
+        var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
+
+        AssertBodySnapshot(chart.Objects.PartOfFortune, "156°19’33″", "Virgo", "6°19’33″");
+        Assert.Equal(ExpectedNightPartOfFortune(input, location), chart.Objects.PartOfFortune.EclipticLongitude);
+    }
+
+    [Fact]
+    public void Calculate_UsesOsculatingApogeeForLilith()
+    {
+        var input = DateTimeOffset.ParseExact(
+            VerificationDateTime,
+            "yyyy-MM-dd HH:mm:ss zzz",
+            System.Globalization.CultureInfo.InvariantCulture);
+        var location = new GeoLocation(VerificationLatitude, VerificationLongitude);
+        var request = new ChartRequest(input, location, "western", "natal");
+
+        var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
+
+        Assert.Equal(ExpectedLilith(input), chart.Objects.Lilith.EclipticLongitude);
     }
 
     [Fact]
@@ -292,6 +344,10 @@ public class AppTests
             "pluto" => chart.Planets.Pluto,
             "northNode" => chart.Objects.NorthNode,
             "southNode" => chart.Objects.SouthNode,
+            "partOfFortune" => chart.Objects.PartOfFortune,
+            "vertex" => chart.Objects.Vertex,
+            "antiVertex" => chart.Objects.AntiVertex,
+            "lilith" => chart.Objects.Lilith,
             "chiron" => chart.Asteroids.Chiron,
             "ceres" => chart.Asteroids.Ceres,
             "pallas" => chart.Asteroids.Pallas,
@@ -331,6 +387,46 @@ public class AppTests
             HouseSystems.Placidus);
 
         return SexagesimalDegreeFormatter.Format(houses.HouseCusps[house]);
+    }
+
+    private static string ExpectedNightPartOfFortune(DateTimeOffset input, GeoLocation location)
+    {
+        using IEphemerides ephemerides = new SwissEphemeridesService(ephType: EphType.Moshier).CreateContext();
+        var utcDateTime = input.ToUniversalTime().UtcDateTime;
+        var houses = ephemerides.HouseCuspPositions(
+            utcDateTime,
+            location.Latitude,
+            location.Longitude,
+            HouseSystems.Placidus);
+        var asc = houses.Cross[Cross.Asc];
+        var sun = ephemerides.PlanetsPosition(Planets.Sun, utcDateTime).Longitude;
+        var moon = ephemerides.PlanetsPosition(Planets.Moon, utcDateTime).Longitude;
+
+        return SexagesimalDegreeFormatter.Format(NormalizeDegrees(asc + sun - moon));
+    }
+
+    private static string ExpectedLilith(DateTimeOffset input)
+    {
+        using var context = new EphemerisContextBuilder().Build();
+        var julianDay = JulianDay.FromUtc(input.ToUniversalTime().UtcDateTime, CalendarSystem.Gregorian);
+        var osculatingApogee = context.Bodies.ComputeUt(
+            CelestialBody.OsculatingApogee,
+            julianDay,
+            EphemerisFlags.MoshierEph | EphemerisFlags.Speed);
+
+        return SexagesimalDegreeFormatter.Format(
+            EclipticLongitude(osculatingApogee.Position.X, osculatingApogee.Position.Y));
+    }
+
+    private static double EclipticLongitude(double x, double y)
+    {
+        return NormalizeDegrees(Math.Atan2(y, x) * 180.0 / Math.PI);
+    }
+
+    private static double NormalizeDegrees(double value)
+    {
+        var normalized = value % 360.0;
+        return normalized < 0 ? normalized + 360.0 : normalized;
     }
 
     private sealed record BodyCase(

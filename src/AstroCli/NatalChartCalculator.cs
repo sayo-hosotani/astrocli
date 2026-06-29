@@ -1,7 +1,11 @@
+using CosineKitty;
 using SharpAstrology.DataModels;
 using SharpAstrology.Enums;
 using SharpAstrology.Ephemerides;
 using SharpAstrology.Interfaces;
+using SharpAstrology.SwissEphemerides;
+using SharpAstrology.SwissEphemerides.Application.Bodies;
+using SharpAstrology.SwissEphemerides.Domain.Time;
 
 namespace AstroCli;
 
@@ -75,7 +79,11 @@ public static class NatalChartCalculator
             CalculateAngles(housePositions),
             new ObjectsOutput(
                 CalculateBody(ephemerides, ObjectDefinitions[0], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, ObjectDefinitions[1], utcDateTime.UtcDateTime)));
+                CalculateBody(ephemerides, ObjectDefinitions[1], utcDateTime.UtcDateTime),
+                CalculatePartOfFortune(ephemerides, housePositions, utcDateTime.UtcDateTime, request.Location),
+                CreatePosition("vertex", housePositions.Cross[Cross.Vertex]),
+                CreatePosition("antiVertex", housePositions.Cross[Cross.Vertex] + 180.0),
+                CalculateLilith(utcDateTime.UtcDateTime)));
     }
 
     private static AnglesOutput CalculateAngles(HousePosition housePositions)
@@ -110,6 +118,55 @@ public static class NatalChartCalculator
     {
         var position = ephemerides.PlanetsPosition(body.Planet, utcDateTime);
         return CreatePosition(body.Name, position.Longitude);
+    }
+
+    private static BodyPosition CalculatePartOfFortune(
+        IEphemerides ephemerides,
+        HousePosition housePositions,
+        DateTime utcDateTime,
+        GeoLocation location)
+    {
+        var asc = NormalizeDegrees(housePositions.Cross[Cross.Asc]);
+        var sun = NormalizeDegrees(ephemerides.PlanetsPosition(Planets.Sun, utcDateTime).Longitude);
+        var moon = NormalizeDegrees(ephemerides.PlanetsPosition(Planets.Moon, utcDateTime).Longitude);
+        var isDayChart = IsSunAboveHorizon(utcDateTime, location);
+        var longitude = isDayChart ? asc + moon - sun : asc + sun - moon;
+
+        return CreatePosition("partOfFortune", longitude);
+    }
+
+    private static BodyPosition CalculateLilith(DateTime utcDateTime)
+    {
+        using var context = new EphemerisContextBuilder().Build();
+        var julianDay = JulianDay.FromUtc(utcDateTime, CalendarSystem.Gregorian);
+        var osculatingApogee = context.Bodies.ComputeUt(
+            CelestialBody.OsculatingApogee,
+            julianDay,
+            EphemerisFlags.MoshierEph | EphemerisFlags.Speed);
+
+        return CreatePosition(
+            "lilith",
+            EclipticLongitude(osculatingApogee.Position.X, osculatingApogee.Position.Y));
+    }
+
+    private static bool IsSunAboveHorizon(DateTime utcDateTime, GeoLocation location)
+    {
+        var time = new AstroTime(utcDateTime);
+        var observer = new Observer(location.Latitude, location.Longitude, 0.0);
+        var sun = Astronomy.Equator(
+            CosineKitty.Body.Sun,
+            time,
+            observer,
+            EquatorEpoch.OfDate,
+            Aberration.Corrected);
+        var horizon = Astronomy.Horizon(time, observer, sun.ra, sun.dec, Refraction.None);
+
+        return horizon.altitude >= 0.0;
+    }
+
+    private static double EclipticLongitude(double x, double y)
+    {
+        return NormalizeDegrees(Math.Atan2(y, x) * 180.0 / Math.PI);
     }
 
     private static BodyPosition CreatePosition(string name, double longitude)
