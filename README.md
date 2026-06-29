@@ -15,7 +15,7 @@ AstroCLIは、コマンドラインからテキストベースの占術チャー
 - アプリの種類はCLIツール。
 - 出力はまずテキストベースにする。
 - 初期機能は、簡単な天文情報の出力。
-- 初期MVPでは、西洋占星術のネイタル固定で、指定日時・指定位置の主要10天体、True Node、小惑星、ASC（上昇点）の位置をJSONで標準出力に出す。
+- 初期MVPでは、西洋占星術のネイタル固定で、指定日時・指定位置の主要10天体、True Node、小惑星、アングル（ASC/IC/DSC/MC）の位置をJSONで標準出力に出す。
 - 初期MVPの日時入力は `"2025-09-04 22:00:00 +09:00"` の形式に固定する。
 - 最終的には複数の占術を扱う。
 - 想定する占術は、西洋占星術、インド占星術、四柱推命、紫微斗数。
@@ -36,13 +36,14 @@ AstroCLIは、コマンドラインからテキストベースの占術チャー
 - 占星術ライブラリを使うか、天文ライブラリから占星術出力を組み立てるかは、精度だけでなく設計思想、ライセンス、実装主権のトレードオフとして判断する。
 - JPL DEやSwiss Ephemerisのような高精度暦は便利だが、出力の意味、座標系、時刻系、ハウス計算などの設計判断を明示する必要がある。
 - 初期MVPでは、太陽、月、水星、金星、火星、木星、土星、天王星、海王星、冥王星、小惑星の位置はtopocentricではなく地心基準で計算する。位置情報はASCや将来のハウス計算など、観測地点の地平線・子午線が関係する要素に使う。
-- 小惑星はJPL Horizonsから太陽中心EQJ状態ベクトルを取得し、`CosineKitty.AstronomyEngine` の `GravitySimulator` と座標変換で地心黄経を算出する。
+- 小惑星はJPL Horizonsから太陽中心EQJ状態ベクトルを取得し、`CosineKitty.AstronomyEngine` の `GravitySimulator` と座標変換で地心黄経を算出する。地球から見た見かけ位置に近づけるため、小惑星には光時間補正を適用する。
 - 通常チャート出力で対応する小惑星は、キロン、セレス、パラス、ジュノー、ベスタ。
 - 小惑星計算の想定日時範囲は、おおむね1950年から2100年。
+- 小惑星は主要天体と算出経路が異なる。比較サイトとの差は、光時間補正後に10-30秒程度であることを確認済み。
 
 ## Initial MVP
 
-初期MVPでは、西洋占星術のネイタル固定で、指定日時・指定位置の主要10天体、True Node、小惑星、ASC（上昇点）の位置をJSONで標準出力に出す。
+初期MVPでは、西洋占星術のネイタル固定で、指定日時・指定位置の主要10天体、True Node、小惑星、アングル（ASC/IC/DSC/MC）の位置をJSONで標準出力に出す。
 
 ビルド:
 
@@ -65,7 +66,7 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
 
 位置情報は `"latitude,longitude"` の1引数で指定する。緯度は `度°分’秒″N/S`、経度は `度°分’秒″E/W` の60進法で指定する。
 
-出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、ASC、プラシーダスの12ハウスカスプ、主要10天体、True Nodeのノースノード/サウスノード、小惑星の黄経度数、星座、星座内度数を含める。天体位置、ノード、ASC、ハウスカスプは `SharpAstrology.SwissEph` のMoshierモードで計算する。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換して計算する。
+出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、True Nodeのノースノード/サウスノードの黄経度数、星座、星座内度数を含める。天体位置、ノード、アングル、ハウスカスプは `SharpAstrology.SwissEph` のMoshierモードで計算する。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
 
 度数は60進数文字列で出力する。
 
@@ -76,12 +77,6 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
   "location": {
     "latitude": "35°41’22″N",
     "longitude": "139°41’30″E"
-  },
-  "ascendant": {
-    "name": "ascendant",
-    "eclipticLongitude": "114°29’59″",
-    "sign": "Cancer",
-    "degreeInSign": "24°29’59″"
   },
   "houses": {
     "system": "placidus",
@@ -100,7 +95,7 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
       }
     }
   },
-  "bodies": {
+  "planets": {
     "sun": {
       "name": "sun",
       "eclipticLongitude": "105°40’31″",
@@ -112,19 +107,9 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
       "eclipticLongitude": "222°25’53″",
       "sign": "Scorpio",
       "degreeInSign": "12°25’53″"
-    },
-    "northNode": {
-      "name": "northNode",
-      "eclipticLongitude": "326°24’19″",
-      "sign": "Aquarius",
-      "degreeInSign": "26°24’19″"
-    },
-    "southNode": {
-      "name": "southNode",
-      "eclipticLongitude": "146°24’19″",
-      "sign": "Leo",
-      "degreeInSign": "26°24’19″"
-    },
+    }
+  },
+  "asteroids": {
     "chiron": {
       "name": "chiron",
       "eclipticLongitude": "95°12’34″",
@@ -136,6 +121,46 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
       "eclipticLongitude": "123°45’56″",
       "sign": "Leo",
       "degreeInSign": "3°45’56″"
+    }
+  },
+  "angles": {
+    "asc": {
+      "name": "asc",
+      "eclipticLongitude": "114°29’59″",
+      "sign": "Cancer",
+      "degreeInSign": "24°29’59″"
+    },
+    "ic": {
+      "name": "ic",
+      "eclipticLongitude": "191°06’51″",
+      "sign": "Libra",
+      "degreeInSign": "11°06’51″"
+    },
+    "dsc": {
+      "name": "dsc",
+      "eclipticLongitude": "294°29’59″",
+      "sign": "Capricorn",
+      "degreeInSign": "24°29’59″"
+    },
+    "mc": {
+      "name": "mc",
+      "eclipticLongitude": "11°06’51″",
+      "sign": "Aries",
+      "degreeInSign": "11°06’51″"
+    }
+  },
+  "objects": {
+    "northNode": {
+      "name": "northNode",
+      "eclipticLongitude": "326°24’19″",
+      "sign": "Aquarius",
+      "degreeInSign": "26°24’19″"
+    },
+    "southNode": {
+      "name": "southNode",
+      "eclipticLongitude": "146°24’19″",
+      "sign": "Leo",
+      "degreeInSign": "26°24’19″"
     }
   }
 }

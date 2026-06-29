@@ -7,7 +7,7 @@ namespace AstroCli;
 
 public static class NatalChartCalculator
 {
-    private static readonly BodyDefinition[] BodyDefinitions =
+    private static readonly BodyDefinition[] PlanetDefinitions =
     [
         new("sun", Planets.Sun),
         new("moon", Planets.Moon),
@@ -18,7 +18,11 @@ public static class NatalChartCalculator
         new("saturn", Planets.Saturn),
         new("uranus", Planets.Uranus),
         new("neptune", Planets.Neptune),
-        new("pluto", Planets.Pluto),
+        new("pluto", Planets.Pluto)
+    ];
+
+    private static readonly BodyDefinition[] ObjectDefinitions =
+    [
         new("northNode", Planets.NorthNode),
         new("southNode", Planets.SouthNode)
     ];
@@ -40,7 +44,6 @@ public static class NatalChartCalculator
             request.Location.Latitude,
             request.Location.Longitude,
             HouseSystems.Placidus);
-        var ascendant = CreatePosition("ascendant", housePositions.Cross[Cross.Asc]);
         var asteroidPositions = await new AsteroidBodyPositionCalculator(horizonsClient ?? new HorizonsClient())
             .CalculateAsync(request.InputDateTime, cancellationToken)
             .ConfigureAwait(false);
@@ -51,26 +54,37 @@ public static class NatalChartCalculator
             request.System,
             request.Chart,
             new LocationOutput(request.Location.FormatLatitude(), request.Location.FormatLongitude()),
-            ascendant,
             CalculateHouses(housePositions),
-            new BodiesOutput(
-                CalculateBody(ephemerides, BodyDefinitions[0], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[1], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[2], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[3], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[4], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[5], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[6], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[7], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[8], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[9], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[10], utcDateTime.UtcDateTime),
-                CalculateBody(ephemerides, BodyDefinitions[11], utcDateTime.UtcDateTime),
+            new PlanetsOutput(
+                CalculateBody(ephemerides, PlanetDefinitions[0], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[1], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[2], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[3], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[4], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[5], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[6], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[7], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[8], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, PlanetDefinitions[9], utcDateTime.UtcDateTime)),
+            new AsteroidsOutput(
                 asteroidPositions[0],
                 asteroidPositions[1],
                 asteroidPositions[2],
                 asteroidPositions[3],
-                asteroidPositions[4]));
+                asteroidPositions[4]),
+            CalculateAngles(housePositions),
+            new ObjectsOutput(
+                CalculateBody(ephemerides, ObjectDefinitions[0], utcDateTime.UtcDateTime),
+                CalculateBody(ephemerides, ObjectDefinitions[1], utcDateTime.UtcDateTime)));
+    }
+
+    private static AnglesOutput CalculateAngles(HousePosition housePositions)
+    {
+        return new AnglesOutput(
+            CreatePosition("asc", housePositions.Cross[Cross.Asc]),
+            CreatePosition("ic", housePositions.Cross[Cross.Ic]),
+            CreatePosition("dsc", housePositions.Cross[Cross.Dc]),
+            CreatePosition("mc", housePositions.Cross[Cross.Mc]));
     }
 
     private static HousesOutput CalculateHouses(HousePosition housePositions)

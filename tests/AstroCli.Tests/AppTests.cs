@@ -13,7 +13,7 @@ public class AppTests
     private const double VerificationLatitude = 36.4;
     private const double VerificationLongitude = 139.33333333333334;
 
-    private static readonly BodyCase[] BodyCases =
+    private static readonly BodyCase[] PlanetCases =
     [
         new("sun", Planets.Sun, "105°40’31″", "Cancer", "15°40’31″"),
         new("moon", Planets.Moon, "160°52’03″", "Virgo", "10°52’03″"),
@@ -24,7 +24,11 @@ public class AppTests
         new("saturn", Planets.Saturn, "280°13’48″", "Capricorn", "10°13’48″"),
         new("uranus", Planets.Uranus, "272°49’23″", "Capricorn", "2°49’23″"),
         new("neptune", Planets.Neptune, "280°52’10″", "Capricorn", "10°52’10″"),
-        new("pluto", Planets.Pluto, "222°25’53″", "Scorpio", "12°25’53″"),
+        new("pluto", Planets.Pluto, "222°25’53″", "Scorpio", "12°25’53″")
+    ];
+
+    private static readonly BodyCase[] ObjectCases =
+    [
         new("northNode", Planets.NorthNode, "326°24’19″", "Aquarius", "26°24’19″"),
         new("southNode", Planets.SouthNode, "146°24’19″", "Leo", "26°24’19″")
     ];
@@ -32,10 +36,10 @@ public class AppTests
     private static readonly AsteroidCase[] AsteroidCases =
     [
         new("chiron", "15°00’00″", "Aries", "15°00’00″"),
-        new("ceres", "45°00’00″", "Taurus", "15°00’00″"),
-        new("pallas", "75°00’00″", "Gemini", "15°00’00″"),
-        new("juno", "105°00’00″", "Cancer", "15°00’00″"),
-        new("vesta", "135°00’00″", "Leo", "15°00’00″")
+        new("ceres", "45°00’10″", "Taurus", "15°00’10″"),
+        new("pallas", "75°00’17″", "Gemini", "15°00’17″"),
+        new("juno", "105°00’22″", "Cancer", "15°00’22″"),
+        new("vesta", "135°00’18″", "Leo", "15°00’18″")
     ];
 
     [Fact]
@@ -66,11 +70,8 @@ public class AppTests
         Assert.Equal("36°24’00″N", location.GetProperty("latitude").GetString());
         Assert.Equal("139°20’00″E", location.GetProperty("longitude").GetString());
 
-        AssertBodySnapshot(
-            root.GetProperty("ascendant"),
-            "114°34’02″",
-            "Cancer",
-            "24°34’02″");
+        Assert.False(root.TryGetProperty("ascendant", out _));
+        Assert.False(root.TryGetProperty("bodies", out _));
 
         var houses = root.GetProperty("houses");
         Assert.Equal("placidus", houses.GetProperty("system").GetString());
@@ -88,23 +89,40 @@ public class AppTests
         AssertBodySnapshot(cusps.GetProperty("house11"), "46°36’51″", "Taurus", "16°36’51″");
         AssertBodySnapshot(cusps.GetProperty("house12"), "82°48’27″", "Gemini", "22°48’27″");
 
-        var bodies = root.GetProperty("bodies");
-        foreach (var body in BodyCases)
+        var planets = root.GetProperty("planets");
+        foreach (var planet in PlanetCases)
         {
             AssertBodySnapshot(
-                bodies.GetProperty(body.JsonName),
-                body.EclipticLongitude,
-                body.Sign,
-                body.DegreeInSign);
+                planets.GetProperty(planet.JsonName),
+                planet.EclipticLongitude,
+                planet.Sign,
+                planet.DegreeInSign);
         }
 
+        var asteroids = root.GetProperty("asteroids");
         foreach (var asteroid in AsteroidCases)
         {
             AssertBodySnapshot(
-                bodies.GetProperty(asteroid.JsonName),
+                asteroids.GetProperty(asteroid.JsonName),
                 asteroid.EclipticLongitude,
                 asteroid.Sign,
                 asteroid.DegreeInSign);
+        }
+
+        var angles = root.GetProperty("angles");
+        AssertBodySnapshot(angles.GetProperty("asc"), "114°34’02″", "Cancer", "24°34’02″");
+        AssertBodySnapshot(angles.GetProperty("ic"), "190°43’33″", "Libra", "10°43’33″");
+        AssertBodySnapshot(angles.GetProperty("dsc"), "294°34’02″", "Capricorn", "24°34’02″");
+        AssertBodySnapshot(angles.GetProperty("mc"), "10°43’33″", "Aries", "10°43’33″");
+
+        var objects = root.GetProperty("objects");
+        foreach (var body in ObjectCases)
+        {
+            AssertBodySnapshot(
+                objects.GetProperty(body.JsonName),
+                body.EclipticLongitude,
+                body.Sign,
+                body.DegreeInSign);
         }
     }
 
@@ -119,14 +137,14 @@ public class AppTests
 
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
-        foreach (var body in BodyCases)
+        foreach (var body in PlanetCases.Concat(ObjectCases))
         {
             Assert.Equal(ExpectedLongitude(body.Planet, input), BodyPositionFor(chart, body.JsonName).EclipticLongitude);
         }
     }
 
     [Fact]
-    public void Calculate_UsesSharpAstrologySwissEphMoshierForAscendant()
+    public void Calculate_UsesSharpAstrologySwissEphMoshierForAngles()
     {
         var input = DateTimeOffset.ParseExact(
             VerificationDateTime,
@@ -137,7 +155,10 @@ public class AppTests
 
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
-        Assert.Equal(ExpectedAscendant(input, location), chart.Ascendant.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Asc), chart.Angles.Asc.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Ic), chart.Angles.Ic.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Dc), chart.Angles.Dsc.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Mc), chart.Angles.Mc.EclipticLongitude);
     }
 
     [Fact]
@@ -153,7 +174,7 @@ public class AppTests
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
         Assert.Equal("placidus", chart.Houses.System);
-        Assert.Equal(chart.Ascendant.EclipticLongitude, chart.Houses.Cusps.House1.EclipticLongitude);
+        Assert.Equal(chart.Angles.Asc.EclipticLongitude, chart.Houses.Cusps.House1.EclipticLongitude);
         Assert.Equal(ExpectedHouseCusp(input, location, Houses.House1), chart.Houses.Cusps.House1.EclipticLongitude);
         Assert.Equal(ExpectedHouseCusp(input, location, Houses.House10), chart.Houses.Cusps.House10.EclipticLongitude);
     }
@@ -259,23 +280,23 @@ public class AppTests
     {
         return jsonName switch
         {
-            "sun" => chart.Bodies.Sun,
-            "moon" => chart.Bodies.Moon,
-            "mercury" => chart.Bodies.Mercury,
-            "venus" => chart.Bodies.Venus,
-            "mars" => chart.Bodies.Mars,
-            "jupiter" => chart.Bodies.Jupiter,
-            "saturn" => chart.Bodies.Saturn,
-            "uranus" => chart.Bodies.Uranus,
-            "neptune" => chart.Bodies.Neptune,
-            "pluto" => chart.Bodies.Pluto,
-            "northNode" => chart.Bodies.NorthNode,
-            "southNode" => chart.Bodies.SouthNode,
-            "chiron" => chart.Bodies.Chiron,
-            "ceres" => chart.Bodies.Ceres,
-            "pallas" => chart.Bodies.Pallas,
-            "juno" => chart.Bodies.Juno,
-            "vesta" => chart.Bodies.Vesta,
+            "sun" => chart.Planets.Sun,
+            "moon" => chart.Planets.Moon,
+            "mercury" => chart.Planets.Mercury,
+            "venus" => chart.Planets.Venus,
+            "mars" => chart.Planets.Mars,
+            "jupiter" => chart.Planets.Jupiter,
+            "saturn" => chart.Planets.Saturn,
+            "uranus" => chart.Planets.Uranus,
+            "neptune" => chart.Planets.Neptune,
+            "pluto" => chart.Planets.Pluto,
+            "northNode" => chart.Objects.NorthNode,
+            "southNode" => chart.Objects.SouthNode,
+            "chiron" => chart.Asteroids.Chiron,
+            "ceres" => chart.Asteroids.Ceres,
+            "pallas" => chart.Asteroids.Pallas,
+            "juno" => chart.Asteroids.Juno,
+            "vesta" => chart.Asteroids.Vesta,
             _ => throw new ArgumentOutOfRangeException(nameof(jsonName), jsonName, "Unknown body.")
         };
     }
@@ -288,7 +309,7 @@ public class AppTests
         return SexagesimalDegreeFormatter.Format(position.Longitude);
     }
 
-    private static string ExpectedAscendant(DateTimeOffset input, GeoLocation location)
+    private static string ExpectedAngle(DateTimeOffset input, GeoLocation location, Cross angle)
     {
         using IEphemerides ephemerides = new SwissEphemeridesService(ephType: EphType.Moshier).CreateContext();
         var houses = ephemerides.HouseCuspPositions(
@@ -297,7 +318,7 @@ public class AppTests
             location.Longitude,
             HouseSystems.Placidus);
 
-        return SexagesimalDegreeFormatter.Format(houses.Cross[Cross.Asc]);
+        return SexagesimalDegreeFormatter.Format(houses.Cross[angle]);
     }
 
     private static string ExpectedHouseCusp(DateTimeOffset input, GeoLocation location, Houses house)

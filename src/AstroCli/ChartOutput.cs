@@ -6,9 +6,11 @@ public sealed record ChartOutput(
     string System,
     string Chart,
     LocationOutput Location,
-    BodyPosition Ascendant,
     HousesOutput Houses,
-    BodiesOutput Bodies);
+    PlanetsOutput Planets,
+    AsteroidsOutput Asteroids,
+    AnglesOutput Angles,
+    ObjectsOutput Objects);
 
 public sealed record LocationOutput(
     string Latitude,
@@ -32,7 +34,7 @@ public sealed record HouseCuspsOutput(
     BodyPosition House11,
     BodyPosition House12);
 
-public sealed record BodiesOutput(
+public sealed record PlanetsOutput(
     BodyPosition Sun,
     BodyPosition Moon,
     BodyPosition Mercury,
@@ -42,14 +44,24 @@ public sealed record BodiesOutput(
     BodyPosition Saturn,
     BodyPosition Uranus,
     BodyPosition Neptune,
-    BodyPosition Pluto,
-    BodyPosition NorthNode,
-    BodyPosition SouthNode,
+    BodyPosition Pluto);
+
+public sealed record AsteroidsOutput(
     BodyPosition Chiron,
     BodyPosition Ceres,
     BodyPosition Pallas,
     BodyPosition Juno,
     BodyPosition Vesta);
+
+public sealed record AnglesOutput(
+    BodyPosition Asc,
+    BodyPosition Ic,
+    BodyPosition Dsc,
+    BodyPosition Mc);
+
+public sealed record ObjectsOutput(
+    BodyPosition NorthNode,
+    BodyPosition SouthNode);
 
 public sealed record BodyPosition(
     string Name,
