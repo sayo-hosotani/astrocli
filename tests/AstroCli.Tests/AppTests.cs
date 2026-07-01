@@ -149,6 +149,18 @@ public class AppTests
                 body.DegreeInSign,
                 body.House);
         }
+
+        var aspects = root.GetProperty("aspects").EnumerateArray().ToArray();
+        Assert.NotEmpty(aspects);
+        var sunMoon = aspects.Single(aspect =>
+            aspect.GetProperty("points").EnumerateArray().Select(point => point.GetString()).SequenceEqual(["sun", "moon"]));
+        Assert.Equal("sextile", sunMoon.GetProperty("aspect").GetString());
+        Assert.Equal("55°11’32″", sunMoon.GetProperty("angle").GetString());
+        Assert.Equal("4°48’28″", sunMoon.GetProperty("orb").GetString());
+
+        var culminatingPlanet = root.GetProperty("culminatingPlanet");
+        Assert.Equal("jupiter", culminatingPlanet.GetProperty("planet").GetString());
+        Assert.Equal("74°18’03″", culminatingPlanet.GetProperty("distanceFromMc").GetString());
     }
 
     [Fact]
@@ -326,9 +338,19 @@ public class AppTests
         Assert.Equal(JsonValueKind.String, body.GetProperty("eclipticLongitude").ValueKind);
         Assert.Equal(JsonValueKind.String, body.GetProperty("sign").ValueKind);
         Assert.Equal(JsonValueKind.String, body.GetProperty("degreeInSign").ValueKind);
+        Assert.False(body.TryGetProperty("name", out _));
         Assert.Equal(longitude, body.GetProperty("eclipticLongitude").GetString());
         Assert.Equal(sign, body.GetProperty("sign").GetString());
         Assert.Equal(degreeInSign, body.GetProperty("degreeInSign").GetString());
+        Assert.Equal(DispositorFor(sign), body.GetProperty("dispositor").GetProperty("planet").GetString());
+
+        var sabian = body.GetProperty("sabian");
+        var sabianDegree = SabianDegreeFor(degreeInSign);
+        Assert.Equal(SabianIndexFor(sign, sabianDegree), sabian.GetProperty("index").GetInt32());
+        Assert.False(string.IsNullOrWhiteSpace(sabian.GetProperty("symbol").GetString()));
+        Assert.False(sabian.TryGetProperty("sign", out _));
+        Assert.False(sabian.TryGetProperty("degree", out _));
+        Assert.False(sabian.TryGetProperty("degreeName", out _));
 
         if (house is null)
         {
@@ -352,6 +374,19 @@ public class AppTests
         Assert.Equal(sign, body.Sign);
         Assert.Equal(degreeInSign, body.DegreeInSign);
         Assert.Equal(house, body.House);
+        Assert.Equal(DispositorFor(sign), body.Dispositor.Planet);
+        Assert.Equal(SabianIndexFor(sign, SabianDegreeFor(degreeInSign)), body.Sabian.Index);
+        Assert.False(string.IsNullOrWhiteSpace(body.Sabian.Symbol));
+    }
+
+    [Fact]
+    public void SabianSymbols_UsesJonesVersionEnglishSymbolNames()
+    {
+        Assert.Equal(
+            "A woman rises out of the water, a seal rises and embraces her",
+            SabianSymbols.SymbolForIndex(1));
+        Assert.Equal("A public market.", SabianSymbols.SymbolForIndex(331));
+        Assert.Equal("The Great Stone Face", SabianSymbols.SymbolForIndex(360));
     }
 
     private static BodyPosition BodyPositionFor(ChartOutput chart, string jsonName)
@@ -453,6 +488,53 @@ public class AppTests
     {
         var normalized = value % 360.0;
         return normalized < 0 ? normalized + 360.0 : normalized;
+    }
+
+    private static int SabianDegreeFor(string degreeInSign)
+    {
+        return int.Parse(degreeInSign[..degreeInSign.IndexOf('°')]) + 1;
+    }
+
+    private static int SabianIndexFor(string sign, int degree)
+    {
+        var signIndex = sign switch
+        {
+            "Aries" => 0,
+            "Taurus" => 1,
+            "Gemini" => 2,
+            "Cancer" => 3,
+            "Leo" => 4,
+            "Virgo" => 5,
+            "Libra" => 6,
+            "Scorpio" => 7,
+            "Sagittarius" => 8,
+            "Capricorn" => 9,
+            "Aquarius" => 10,
+            "Pisces" => 11,
+            _ => throw new ArgumentOutOfRangeException(nameof(sign), sign, "Unknown zodiac sign.")
+        };
+
+        return (signIndex * 30) + degree;
+    }
+
+    private static string DispositorFor(string sign)
+    {
+        return sign switch
+        {
+            "Aries" => "mars",
+            "Taurus" => "venus",
+            "Gemini" => "mercury",
+            "Cancer" => "moon",
+            "Leo" => "sun",
+            "Virgo" => "mercury",
+            "Libra" => "venus",
+            "Scorpio" => "pluto",
+            "Sagittarius" => "jupiter",
+            "Capricorn" => "saturn",
+            "Aquarius" => "uranus",
+            "Pisces" => "neptune",
+            _ => throw new ArgumentOutOfRangeException(nameof(sign), sign, "Unknown zodiac sign.")
+        };
     }
 
     private sealed record BodyCase(

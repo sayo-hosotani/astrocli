@@ -11,7 +11,7 @@ public sealed class AsteroidBodyPositionCalculator
         this.horizonsClient = horizonsClient;
     }
 
-    public async Task<IReadOnlyList<BodyPosition>> CalculateAsync(
+    public async Task<IReadOnlyList<ChartPoint>> CalculateAsync(
         DateTimeOffset at,
         Func<double, string?>? houseForLongitude = null,
         CancellationToken cancellationToken = default)
@@ -27,14 +27,14 @@ public sealed class AsteroidBodyPositionCalculator
 
         var simulator = new GravitySimulator(Body.Sun, time, stateVectors);
         var earthState = simulator.SolarSystemBodyState(Body.Earth);
-        var positions = new List<BodyPosition>();
+        var positions = new List<ChartPoint>();
         for (var index = 0; index < KnownAsteroids.FixedTargets.Count; index++)
         {
             var target = KnownAsteroids.FixedTargets[index];
             var geocentricEqj = CalculateLightTimeCorrectedVector(time, stateVectors, earthState, index);
             var geocentricEcliptic = Astronomy.RotateVector(Astronomy.Rotation_EQJ_ECT(time), geocentricEqj);
             var spherical = Astronomy.SphereFromVector(geocentricEcliptic);
-            positions.Add(CreatePosition(target.JsonName, spherical.lon, houseForLongitude));
+            positions.Add(CreatePoint(target.JsonName, spherical.lon, houseForLongitude));
         }
 
         return positions;
@@ -67,17 +67,11 @@ public sealed class AsteroidBodyPositionCalculator
             time);
     }
 
-    private static BodyPosition CreatePosition(string name, double longitude, Func<double, string?>? houseForLongitude)
+    private static ChartPoint CreatePoint(string key, double longitude, Func<double, string?>? houseForLongitude)
     {
         longitude = NormalizeDegrees(longitude);
-        var sign = Zodiac.SignForLongitude(longitude);
 
-        return new BodyPosition(
-            name,
-            SexagesimalDegreeFormatter.Format(longitude),
-            sign.Name,
-            SexagesimalDegreeFormatter.Format(sign.DegreeInSign),
-            houseForLongitude?.Invoke(longitude));
+        return new ChartPoint(key, longitude, houseForLongitude?.Invoke(longitude));
     }
 
     private static double NormalizeDegrees(double value)

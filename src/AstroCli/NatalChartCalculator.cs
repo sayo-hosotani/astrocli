@@ -11,6 +11,8 @@ namespace AstroCli;
 
 public static class NatalChartCalculator
 {
+    private const double AspectOrbDegrees = 6.0;
+
     private static readonly BodyDefinition[] PlanetDefinitions =
     [
         new("sun", Planets.Sun),
@@ -31,6 +33,15 @@ public static class NatalChartCalculator
         new("southNode", Planets.SouthNode)
     ];
 
+    private static readonly AspectDefinition[] AspectDefinitions =
+    [
+        new("conjunction", 0.0),
+        new("sextile", 60.0),
+        new("square", 90.0),
+        new("trine", 120.0),
+        new("opposition", 180.0)
+    ];
+
     public static ChartOutput Calculate(ChartRequest request, IHorizonsClient? horizonsClient = null)
     {
         return CalculateAsync(request, horizonsClient).GetAwaiter().GetResult();
@@ -49,9 +60,19 @@ public static class NatalChartCalculator
             request.Location.Longitude,
             HouseSystems.Placidus);
         var houseCusps = HouseCuspsFor(housePositions);
-        var asteroidPositions = await new AsteroidBodyPositionCalculator(horizonsClient ?? new HorizonsClient())
+
+        var planetPoints = CalculatePlanetPoints(ephemerides, utcDateTime.UtcDateTime, houseCusps);
+        var asteroidPoints = await new AsteroidBodyPositionCalculator(horizonsClient ?? new HorizonsClient())
             .CalculateAsync(request.InputDateTime, longitude => HouseForLongitude(houseCusps, longitude), cancellationToken)
             .ConfigureAwait(false);
+        var anglePoints = CalculateAnglePoints(housePositions);
+        var objectPoints = CalculateObjectPoints(
+            ephemerides,
+            housePositions,
+            utcDateTime.UtcDateTime,
+            request.Location,
+            houseCusps);
+        var aspectPoints = planetPoints.Concat(asteroidPoints).Concat(objectPoints).ToArray();
 
         return new ChartOutput(
             FormatInputDateTime(request.InputDateTime),
@@ -60,40 +81,96 @@ public static class NatalChartCalculator
             request.Chart,
             new LocationOutput(request.Location.FormatLatitude(), request.Location.FormatLongitude()),
             CalculateHouses(housePositions),
-            new PlanetsOutput(
-                CalculateBody(ephemerides, PlanetDefinitions[0], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[1], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[2], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[3], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[4], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[5], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[6], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[7], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[8], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, PlanetDefinitions[9], utcDateTime.UtcDateTime, houseCusps)),
-            new AsteroidsOutput(
-                asteroidPositions[0],
-                asteroidPositions[1],
-                asteroidPositions[2],
-                asteroidPositions[3],
-                asteroidPositions[4]),
-            CalculateAngles(housePositions),
-            new ObjectsOutput(
-                CalculateBody(ephemerides, ObjectDefinitions[0], utcDateTime.UtcDateTime, houseCusps),
-                CalculateBody(ephemerides, ObjectDefinitions[1], utcDateTime.UtcDateTime, houseCusps),
-                CalculatePartOfFortune(ephemerides, housePositions, utcDateTime.UtcDateTime, request.Location, houseCusps),
-                CreatePosition("vertex", housePositions.Cross[Cross.Vertex], HouseForLongitude(houseCusps, housePositions.Cross[Cross.Vertex])),
-                CreatePosition("antiVertex", housePositions.Cross[Cross.Vertex] + 180.0, HouseForLongitude(houseCusps, housePositions.Cross[Cross.Vertex] + 180.0)),
-                CalculateLilith(utcDateTime.UtcDateTime, houseCusps)));
+            CreatePlanetsOutput(planetPoints),
+            CreateAsteroidsOutput(asteroidPoints),
+            CreateAnglesOutput(anglePoints),
+            CreateObjectsOutput(objectPoints),
+            CalculateAspects(aspectPoints),
+            CalculateCulminatingPlanet(planetPoints, anglePoints.Single(point => point.Key == "mc")));
     }
 
-    private static AnglesOutput CalculateAngles(HousePosition housePositions)
+    private static IReadOnlyList<ChartPoint> CalculatePlanetPoints(
+        IEphemerides ephemerides,
+        DateTime utcDateTime,
+        IReadOnlyList<HouseCusp> houseCusps)
+    {
+        return PlanetDefinitions
+            .Select(body => CalculateBodyPoint(ephemerides, body, utcDateTime, houseCusps))
+            .ToArray();
+    }
+
+    private static IReadOnlyList<ChartPoint> CalculateObjectPoints(
+        IEphemerides ephemerides,
+        HousePosition housePositions,
+        DateTime utcDateTime,
+        GeoLocation location,
+        IReadOnlyList<HouseCusp> houseCusps)
+    {
+        return
+        [
+            CalculateBodyPoint(ephemerides, ObjectDefinitions[0], utcDateTime, houseCusps),
+            CalculateBodyPoint(ephemerides, ObjectDefinitions[1], utcDateTime, houseCusps),
+            CalculatePartOfFortune(ephemerides, housePositions, utcDateTime, location, houseCusps),
+            CreatePoint("vertex", housePositions.Cross[Cross.Vertex], HouseForLongitude(houseCusps, housePositions.Cross[Cross.Vertex])),
+            CreatePoint("antiVertex", housePositions.Cross[Cross.Vertex] + 180.0, HouseForLongitude(houseCusps, housePositions.Cross[Cross.Vertex] + 180.0)),
+            CalculateLilith(utcDateTime, houseCusps)
+        ];
+    }
+
+    private static IReadOnlyList<ChartPoint> CalculateAnglePoints(HousePosition housePositions)
+    {
+        return
+        [
+            CreatePoint("asc", housePositions.Cross[Cross.Asc]),
+            CreatePoint("ic", housePositions.Cross[Cross.Ic]),
+            CreatePoint("dsc", housePositions.Cross[Cross.Dc]),
+            CreatePoint("mc", housePositions.Cross[Cross.Mc])
+        ];
+    }
+
+    private static PlanetsOutput CreatePlanetsOutput(IReadOnlyList<ChartPoint> points)
+    {
+        return new PlanetsOutput(
+            CreatePosition(points[0]),
+            CreatePosition(points[1]),
+            CreatePosition(points[2]),
+            CreatePosition(points[3]),
+            CreatePosition(points[4]),
+            CreatePosition(points[5]),
+            CreatePosition(points[6]),
+            CreatePosition(points[7]),
+            CreatePosition(points[8]),
+            CreatePosition(points[9]));
+    }
+
+    private static AsteroidsOutput CreateAsteroidsOutput(IReadOnlyList<ChartPoint> points)
+    {
+        return new AsteroidsOutput(
+            CreatePosition(points[0]),
+            CreatePosition(points[1]),
+            CreatePosition(points[2]),
+            CreatePosition(points[3]),
+            CreatePosition(points[4]));
+    }
+
+    private static AnglesOutput CreateAnglesOutput(IReadOnlyList<ChartPoint> points)
     {
         return new AnglesOutput(
-            CreatePosition("asc", housePositions.Cross[Cross.Asc]),
-            CreatePosition("ic", housePositions.Cross[Cross.Ic]),
-            CreatePosition("dsc", housePositions.Cross[Cross.Dc]),
-            CreatePosition("mc", housePositions.Cross[Cross.Mc]));
+            CreatePosition(points[0]),
+            CreatePosition(points[1]),
+            CreatePosition(points[2]),
+            CreatePosition(points[3]));
+    }
+
+    private static ObjectsOutput CreateObjectsOutput(IReadOnlyList<ChartPoint> points)
+    {
+        return new ObjectsOutput(
+            CreatePosition(points[0]),
+            CreatePosition(points[1]),
+            CreatePosition(points[2]),
+            CreatePosition(points[3]),
+            CreatePosition(points[4]),
+            CreatePosition(points[5]));
     }
 
     private static HousesOutput CalculateHouses(HousePosition housePositions)
@@ -101,31 +178,31 @@ public static class NatalChartCalculator
         return new HousesOutput(
             "placidus",
             new HouseCuspsOutput(
-                CreatePosition("house1", housePositions.HouseCusps[Houses.House1]),
-                CreatePosition("house2", housePositions.HouseCusps[Houses.House2]),
-                CreatePosition("house3", housePositions.HouseCusps[Houses.House3]),
-                CreatePosition("house4", housePositions.HouseCusps[Houses.House4]),
-                CreatePosition("house5", housePositions.HouseCusps[Houses.House5]),
-                CreatePosition("house6", housePositions.HouseCusps[Houses.House6]),
-                CreatePosition("house7", housePositions.HouseCusps[Houses.House7]),
-                CreatePosition("house8", housePositions.HouseCusps[Houses.House8]),
-                CreatePosition("house9", housePositions.HouseCusps[Houses.House9]),
-                CreatePosition("house10", housePositions.HouseCusps[Houses.House10]),
-                CreatePosition("house11", housePositions.HouseCusps[Houses.House11]),
-                CreatePosition("house12", housePositions.HouseCusps[Houses.House12])));
+                CreatePosition(CreatePoint("house1", housePositions.HouseCusps[Houses.House1])),
+                CreatePosition(CreatePoint("house2", housePositions.HouseCusps[Houses.House2])),
+                CreatePosition(CreatePoint("house3", housePositions.HouseCusps[Houses.House3])),
+                CreatePosition(CreatePoint("house4", housePositions.HouseCusps[Houses.House4])),
+                CreatePosition(CreatePoint("house5", housePositions.HouseCusps[Houses.House5])),
+                CreatePosition(CreatePoint("house6", housePositions.HouseCusps[Houses.House6])),
+                CreatePosition(CreatePoint("house7", housePositions.HouseCusps[Houses.House7])),
+                CreatePosition(CreatePoint("house8", housePositions.HouseCusps[Houses.House8])),
+                CreatePosition(CreatePoint("house9", housePositions.HouseCusps[Houses.House9])),
+                CreatePosition(CreatePoint("house10", housePositions.HouseCusps[Houses.House10])),
+                CreatePosition(CreatePoint("house11", housePositions.HouseCusps[Houses.House11])),
+                CreatePosition(CreatePoint("house12", housePositions.HouseCusps[Houses.House12]))));
     }
 
-    private static BodyPosition CalculateBody(
+    private static ChartPoint CalculateBodyPoint(
         IEphemerides ephemerides,
         BodyDefinition body,
         DateTime utcDateTime,
         IReadOnlyList<HouseCusp> houseCusps)
     {
         var position = ephemerides.PlanetsPosition(body.Planet, utcDateTime);
-        return CreatePosition(body.Name, position.Longitude, HouseForLongitude(houseCusps, position.Longitude));
+        return CreatePoint(body.Key, position.Longitude, HouseForLongitude(houseCusps, position.Longitude));
     }
 
-    private static BodyPosition CalculatePartOfFortune(
+    private static ChartPoint CalculatePartOfFortune(
         IEphemerides ephemerides,
         HousePosition housePositions,
         DateTime utcDateTime,
@@ -138,10 +215,10 @@ public static class NatalChartCalculator
         var isDayChart = IsSunAboveHorizon(utcDateTime, location);
         var longitude = isDayChart ? asc + moon - sun : asc + sun - moon;
 
-        return CreatePosition("partOfFortune", longitude, HouseForLongitude(houseCusps, longitude));
+        return CreatePoint("partOfFortune", longitude, HouseForLongitude(houseCusps, longitude));
     }
 
-    private static BodyPosition CalculateLilith(DateTime utcDateTime, IReadOnlyList<HouseCusp> houseCusps)
+    private static ChartPoint CalculateLilith(DateTime utcDateTime, IReadOnlyList<HouseCusp> houseCusps)
     {
         using var context = new EphemerisContextBuilder().Build();
         var julianDay = JulianDay.FromUtc(utcDateTime, CalendarSystem.Gregorian);
@@ -151,10 +228,108 @@ public static class NatalChartCalculator
             EphemerisFlags.MoshierEph | EphemerisFlags.Speed);
         var longitude = EclipticLongitude(osculatingApogee.Position.X, osculatingApogee.Position.Y);
 
-        return CreatePosition(
-            "lilith",
-            longitude,
-            HouseForLongitude(houseCusps, longitude));
+        return CreatePoint("lilith", longitude, HouseForLongitude(houseCusps, longitude));
+    }
+
+    private static IReadOnlyList<AspectOutput> CalculateAspects(IReadOnlyList<ChartPoint> points)
+    {
+        var aspects = new List<AspectOutput>();
+
+        for (var left = 0; left < points.Count; left++)
+        {
+            for (var right = left + 1; right < points.Count; right++)
+            {
+                var angle = AngularDistance(points[left].Longitude, points[right].Longitude);
+                var aspect = AspectDefinitions
+                    .Select(definition => new
+                    {
+                        Definition = definition,
+                        Orb = Math.Abs(angle - definition.Angle)
+                    })
+                    .Where(candidate => candidate.Orb <= AspectOrbDegrees)
+                    .OrderBy(candidate => candidate.Orb)
+                    .FirstOrDefault();
+
+                if (aspect is null)
+                {
+                    continue;
+                }
+
+                aspects.Add(new AspectOutput(
+                    [points[left].Key, points[right].Key],
+                    aspect.Definition.Name,
+                    SexagesimalDegreeFormatter.Format(angle),
+                    SexagesimalDegreeFormatter.Format(aspect.Orb)));
+            }
+        }
+
+        return aspects;
+    }
+
+    private static CulminatingPlanetOutput CalculateCulminatingPlanet(
+        IReadOnlyList<ChartPoint> planetPoints,
+        ChartPoint mc)
+    {
+        var culminating = planetPoints
+            .Select(point => new
+            {
+                Point = point,
+                Distance = NormalizeDegrees(point.Longitude - mc.Longitude)
+            })
+            .OrderBy(candidate => candidate.Distance)
+            .First();
+
+        return new CulminatingPlanetOutput(
+            culminating.Point.Key,
+            SexagesimalDegreeFormatter.Format(culminating.Distance));
+    }
+
+    private static BodyPosition CreatePosition(ChartPoint point)
+    {
+        var longitude = NormalizeDegrees(point.Longitude);
+        var sign = Zodiac.SignForLongitude(longitude);
+
+        return new BodyPosition(
+            SexagesimalDegreeFormatter.Format(longitude),
+            sign.Name,
+            SexagesimalDegreeFormatter.Format(sign.DegreeInSign),
+            point.House,
+            new DispositorOutput(DispositorFor(sign.Name)),
+            SabianFor(longitude));
+    }
+
+    private static SabianOutput SabianFor(double longitude)
+    {
+        longitude = NormalizeDegrees(longitude);
+        var roundedSeconds = (int)Math.Round(longitude * 3600.0, MidpointRounding.AwayFromZero) % (360 * 3600);
+        var roundedLongitude = roundedSeconds / 3600.0;
+        var sign = Zodiac.SignForLongitude(roundedLongitude);
+        var signIndex = Math.Min(roundedSeconds / (30 * 3600), 11);
+        var degree = ((roundedSeconds - (signIndex * 30 * 3600)) / 3600) + 1;
+
+        return new SabianOutput(
+            (signIndex * 30) + degree,
+            SabianSymbols.SymbolForIndex((signIndex * 30) + degree));
+    }
+
+    private static string DispositorFor(string sign)
+    {
+        return sign switch
+        {
+            "Aries" => "mars",
+            "Taurus" => "venus",
+            "Gemini" => "mercury",
+            "Cancer" => "moon",
+            "Leo" => "sun",
+            "Virgo" => "mercury",
+            "Libra" => "venus",
+            "Scorpio" => "pluto",
+            "Sagittarius" => "jupiter",
+            "Capricorn" => "saturn",
+            "Aquarius" => "uranus",
+            "Pisces" => "neptune",
+            _ => throw new ArgumentOutOfRangeException(nameof(sign), sign, "Unknown zodiac sign.")
+        };
     }
 
     private static bool IsSunAboveHorizon(DateTime utcDateTime, GeoLocation location)
@@ -177,17 +352,11 @@ public static class NatalChartCalculator
         return NormalizeDegrees(Math.Atan2(y, x) * 180.0 / Math.PI);
     }
 
-    private static BodyPosition CreatePosition(string name, double longitude, string? house = null)
+    private static ChartPoint CreatePoint(string key, double longitude, string? house = null)
     {
         longitude = NormalizeDegrees(longitude);
-        var sign = Zodiac.SignForLongitude(longitude);
 
-        return new BodyPosition(
-            name,
-            SexagesimalDegreeFormatter.Format(longitude),
-            sign.Name,
-            SexagesimalDegreeFormatter.Format(sign.DegreeInSign),
-            house);
+        return new ChartPoint(key, longitude, house);
     }
 
     private static IReadOnlyList<HouseCusp> HouseCuspsFor(HousePosition housePositions)
@@ -229,6 +398,12 @@ public static class NatalChartCalculator
         return houseCusps[^1].Name;
     }
 
+    private static double AngularDistance(double left, double right)
+    {
+        var distance = Math.Abs(NormalizeDegrees(left) - NormalizeDegrees(right));
+        return distance > 180.0 ? 360.0 - distance : distance;
+    }
+
     private static string FormatInputDateTime(DateTimeOffset dateTime)
     {
         return dateTime.ToString("yyyy-MM-dd HH:mm:ss zzz");
@@ -245,7 +420,9 @@ public static class NatalChartCalculator
         return normalized < 0 ? normalized + 360.0 : normalized;
     }
 
-    private sealed record BodyDefinition(string Name, Planets Planet);
+    private sealed record BodyDefinition(string Key, Planets Planet);
 
     private sealed record HouseCusp(string Name, double Longitude);
+
+    private sealed record AspectDefinition(string Name, double Angle);
 }

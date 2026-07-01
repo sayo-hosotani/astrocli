@@ -12,7 +12,9 @@ public sealed record ChartOutput(
     PlanetsOutput Planets,
     AsteroidsOutput Asteroids,
     AnglesOutput Angles,
-    ObjectsOutput Objects);
+    ObjectsOutput Objects,
+    IReadOnlyList<AspectOutput> Aspects,
+    CulminatingPlanetOutput CulminatingPlanet);
 
 public sealed record LocationOutput(
     string Latitude,
@@ -70,9 +72,27 @@ public sealed record ObjectsOutput(
     BodyPosition Lilith);
 
 public sealed record BodyPosition(
-    string Name,
     string EclipticLongitude,
     string Sign,
     string DegreeInSign,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? House = null);
+    string? House,
+    DispositorOutput Dispositor,
+    SabianOutput Sabian);
+
+public sealed record DispositorOutput(
+    string Planet);
+
+public sealed record SabianOutput(
+    int Index,
+    string Symbol);
+
+public sealed record AspectOutput(
+    IReadOnlyList<string> Points,
+    string Aspect,
+    string Angle,
+    string Orb);
+
+public sealed record CulminatingPlanetOutput(
+    string Planet,
+    string DistanceFromMc);
