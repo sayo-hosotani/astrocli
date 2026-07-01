@@ -13,7 +13,7 @@ public sealed class AsteroidBodyPositionCalculator
 
     public async Task<IReadOnlyList<ChartPoint>> CalculateAsync(
         DateTimeOffset at,
-        Func<double, string?>? houseForLongitude = null,
+        Func<double, int?>? houseForLongitude = null,
         CancellationToken cancellationToken = default)
     {
         var time = new AstroTime(at.ToUniversalTime().UtcDateTime);
@@ -67,7 +67,7 @@ public sealed class AsteroidBodyPositionCalculator
             time);
     }
 
-    private static ChartPoint CreatePoint(string key, double longitude, Func<double, string?>? houseForLongitude)
+    private static ChartPoint CreatePoint(string key, double longitude, Func<double, int?>? houseForLongitude)
     {
         longitude = NormalizeDegrees(longitude);
 

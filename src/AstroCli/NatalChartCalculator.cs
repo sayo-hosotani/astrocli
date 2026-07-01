@@ -87,12 +87,12 @@ public static class NatalChartCalculator
             request.Chart,
             new LocationOutput(request.Location.FormatLatitude(), request.Location.FormatLongitude()),
             "placidus",
+            CalculateCulminate(planetPoints, anglePoints.Single(point => point.Key == "mc")),
             CreateHouseCuspsOutput(housePoints),
             CreatePointsOutput(points),
             CreateSabianSymbolsOutput(housePoints.Concat(points).ToArray()),
             CalculateDispositors(planetPoints),
-            CalculateAspects(aspectPoints),
-            CalculateCulminatingPlanet(planetPoints, anglePoints.Single(point => point.Key == "mc")));
+            CalculateAspects(aspectPoints));
     }
 
     private static IReadOnlyList<ChartPoint> CalculatePlanetPoints(
@@ -403,7 +403,7 @@ public static class NatalChartCalculator
         }
     }
 
-    private static CulminatingPlanetOutput CalculateCulminatingPlanet(
+    private static CulminateOutput CalculateCulminate(
         IReadOnlyList<ChartPoint> planetPoints,
         ChartPoint mc)
     {
@@ -416,7 +416,7 @@ public static class NatalChartCalculator
             .OrderBy(candidate => candidate.Distance)
             .First();
 
-        return new CulminatingPlanetOutput(
+        return new CulminateOutput(
             culminating.Point.Key,
             SexagesimalDegreeFormatter.Format(culminating.Distance));
     }
@@ -520,7 +520,7 @@ public static class NatalChartCalculator
         return NormalizeDegrees(Math.Atan2(y, x) * 180.0 / Math.PI);
     }
 
-    private static ChartPoint CreatePoint(string key, string type, double longitude, string? house = null)
+    private static ChartPoint CreatePoint(string key, string type, double longitude, int? house = null)
     {
         longitude = NormalizeDegrees(longitude);
 
@@ -531,22 +531,22 @@ public static class NatalChartCalculator
     {
         return
         [
-            new("house1", housePositions.HouseCusps[Houses.House1]),
-            new("house2", housePositions.HouseCusps[Houses.House2]),
-            new("house3", housePositions.HouseCusps[Houses.House3]),
-            new("house4", housePositions.HouseCusps[Houses.House4]),
-            new("house5", housePositions.HouseCusps[Houses.House5]),
-            new("house6", housePositions.HouseCusps[Houses.House6]),
-            new("house7", housePositions.HouseCusps[Houses.House7]),
-            new("house8", housePositions.HouseCusps[Houses.House8]),
-            new("house9", housePositions.HouseCusps[Houses.House9]),
-            new("house10", housePositions.HouseCusps[Houses.House10]),
-            new("house11", housePositions.HouseCusps[Houses.House11]),
-            new("house12", housePositions.HouseCusps[Houses.House12])
+            new(1, housePositions.HouseCusps[Houses.House1]),
+            new(2, housePositions.HouseCusps[Houses.House2]),
+            new(3, housePositions.HouseCusps[Houses.House3]),
+            new(4, housePositions.HouseCusps[Houses.House4]),
+            new(5, housePositions.HouseCusps[Houses.House5]),
+            new(6, housePositions.HouseCusps[Houses.House6]),
+            new(7, housePositions.HouseCusps[Houses.House7]),
+            new(8, housePositions.HouseCusps[Houses.House8]),
+            new(9, housePositions.HouseCusps[Houses.House9]),
+            new(10, housePositions.HouseCusps[Houses.House10]),
+            new(11, housePositions.HouseCusps[Houses.House11]),
+            new(12, housePositions.HouseCusps[Houses.House12])
         ];
     }
 
-    private static string HouseForLongitude(IReadOnlyList<HouseCusp> houseCusps, double longitude)
+    private static int HouseForLongitude(IReadOnlyList<HouseCusp> houseCusps, double longitude)
     {
         longitude = NormalizeDegrees(longitude);
 
@@ -559,11 +559,11 @@ public static class NatalChartCalculator
 
             if (distanceToLongitude < distanceToNextCusp)
             {
-                return houseCusps[index].Name;
+                return houseCusps[index].Number;
             }
         }
 
-        return houseCusps[^1].Name;
+        return houseCusps[^1].Number;
     }
 
     private static double AngularDistance(double left, double right)
@@ -590,7 +590,7 @@ public static class NatalChartCalculator
 
     private sealed record BodyDefinition(string Key, Planets Planet);
 
-    private sealed record HouseCusp(string Name, double Longitude);
+    private sealed record HouseCusp(int Number, double Longitude);
 
     private sealed record AspectDefinition(string Name, double Angle);
 

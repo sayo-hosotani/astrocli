@@ -9,29 +9,41 @@ public sealed record ChartOutput(
     string Chart,
     LocationOutput Location,
     string HouseSystem,
+    CulminateOutput Culminate,
     HouseCuspsOutput HouseCusps,
     PointsOutput Points,
     SabianSymbolsOutput SabianSymbols,
     IReadOnlyList<DispositorGroupOutput> Dispositors,
-    IReadOnlyList<AspectOutput> Aspects,
-    CulminatingPlanetOutput CulminatingPlanet);
+    IReadOnlyList<AspectOutput> Aspects);
 
 public sealed record LocationOutput(
     string Latitude,
     string Longitude);
 
 public sealed record HouseCuspsOutput(
+    [property: JsonPropertyName("1")]
     PositionOutput House1,
+    [property: JsonPropertyName("2")]
     PositionOutput House2,
+    [property: JsonPropertyName("3")]
     PositionOutput House3,
+    [property: JsonPropertyName("4")]
     PositionOutput House4,
+    [property: JsonPropertyName("5")]
     PositionOutput House5,
+    [property: JsonPropertyName("6")]
     PositionOutput House6,
+    [property: JsonPropertyName("7")]
     PositionOutput House7,
+    [property: JsonPropertyName("8")]
     PositionOutput House8,
+    [property: JsonPropertyName("9")]
     PositionOutput House9,
+    [property: JsonPropertyName("10")]
     PositionOutput House10,
+    [property: JsonPropertyName("11")]
     PositionOutput House11,
+    [property: JsonPropertyName("12")]
     PositionOutput House12);
 
 public sealed record PointsOutput(
@@ -105,7 +117,7 @@ public sealed record PositionOutput(
     string Sign,
     string DegreeInSign,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? House);
+    int? House);
 
 public sealed record PointOutput(
     string Type,
@@ -113,7 +125,7 @@ public sealed record PointOutput(
     string Sign,
     string DegreeInSign,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? House);
+    int? House);
 
 public sealed record DispositorGroupOutput(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -135,6 +147,6 @@ public sealed record AspectOutput(
     string Aspect,
     string Orb);
 
-public sealed record CulminatingPlanetOutput(
+public sealed record CulminateOutput(
     string Planet,
     string DistanceFromMc);
