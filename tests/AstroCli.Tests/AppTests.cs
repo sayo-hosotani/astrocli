@@ -84,69 +84,80 @@ public class AppTests
 
         Assert.False(root.TryGetProperty("ascendant", out _));
         Assert.False(root.TryGetProperty("bodies", out _));
+        Assert.False(root.TryGetProperty("planets", out _));
+        Assert.False(root.TryGetProperty("asteroids", out _));
+        Assert.False(root.TryGetProperty("angles", out _));
+        Assert.False(root.TryGetProperty("objects", out _));
+
+        var sabianSymbols = root.GetProperty("sabianSymbols");
 
         var houses = root.GetProperty("houses");
         Assert.Equal("placidus", houses.GetProperty("system").GetString());
         var cusps = houses.GetProperty("cusps");
-        AssertBodySnapshot(cusps.GetProperty("house1"), "114°34’02″", "Cancer", "24°34’02″");
-        AssertBodySnapshot(cusps.GetProperty("house2"), "135°37’06″", "Leo", "15°37’06″");
-        AssertBodySnapshot(cusps.GetProperty("house3"), "160°15’14″", "Virgo", "10°15’14″");
-        AssertBodySnapshot(cusps.GetProperty("house4"), "190°43’33″", "Libra", "10°43’33″");
-        AssertBodySnapshot(cusps.GetProperty("house5"), "226°36’51″", "Scorpio", "16°36’51″");
-        AssertBodySnapshot(cusps.GetProperty("house6"), "262°48’27″", "Sagittarius", "22°48’27″");
-        AssertBodySnapshot(cusps.GetProperty("house7"), "294°34’02″", "Capricorn", "24°34’02″");
-        AssertBodySnapshot(cusps.GetProperty("house8"), "315°37’06″", "Aquarius", "15°37’06″");
-        AssertBodySnapshot(cusps.GetProperty("house9"), "340°15’14″", "Pisces", "10°15’14″");
-        AssertBodySnapshot(cusps.GetProperty("house10"), "10°43’33″", "Aries", "10°43’33″");
-        AssertBodySnapshot(cusps.GetProperty("house11"), "46°36’51″", "Taurus", "16°36’51″");
-        AssertBodySnapshot(cusps.GetProperty("house12"), "82°48’27″", "Gemini", "22°48’27″");
+        AssertPositionSnapshot(cusps.GetProperty("house1"), "114°34’02″", "Cancer", "24°34’02″", sabianSymbols.GetProperty("house1"));
+        AssertPositionSnapshot(cusps.GetProperty("house2"), "135°37’06″", "Leo", "15°37’06″", sabianSymbols.GetProperty("house2"));
+        AssertPositionSnapshot(cusps.GetProperty("house3"), "160°15’14″", "Virgo", "10°15’14″", sabianSymbols.GetProperty("house3"));
+        AssertPositionSnapshot(cusps.GetProperty("house4"), "190°43’33″", "Libra", "10°43’33″", sabianSymbols.GetProperty("house4"));
+        AssertPositionSnapshot(cusps.GetProperty("house5"), "226°36’51″", "Scorpio", "16°36’51″", sabianSymbols.GetProperty("house5"));
+        AssertPositionSnapshot(cusps.GetProperty("house6"), "262°48’27″", "Sagittarius", "22°48’27″", sabianSymbols.GetProperty("house6"));
+        AssertPositionSnapshot(cusps.GetProperty("house7"), "294°34’02″", "Capricorn", "24°34’02″", sabianSymbols.GetProperty("house7"));
+        AssertPositionSnapshot(cusps.GetProperty("house8"), "315°37’06″", "Aquarius", "15°37’06″", sabianSymbols.GetProperty("house8"));
+        AssertPositionSnapshot(cusps.GetProperty("house9"), "340°15’14″", "Pisces", "10°15’14″", sabianSymbols.GetProperty("house9"));
+        AssertPositionSnapshot(cusps.GetProperty("house10"), "10°43’33″", "Aries", "10°43’33″", sabianSymbols.GetProperty("house10"));
+        AssertPositionSnapshot(cusps.GetProperty("house11"), "46°36’51″", "Taurus", "16°36’51″", sabianSymbols.GetProperty("house11"));
+        AssertPositionSnapshot(cusps.GetProperty("house12"), "82°48’27″", "Gemini", "22°48’27″", sabianSymbols.GetProperty("house12"));
 
-        var planets = root.GetProperty("planets");
+        var points = root.GetProperty("points");
         foreach (var planet in PlanetCases)
         {
-            AssertBodySnapshot(
-                planets.GetProperty(planet.JsonName),
+            AssertPointSnapshot(
+                points.GetProperty(planet.JsonName),
+                "planet",
                 planet.EclipticLongitude,
                 planet.Sign,
                 planet.DegreeInSign,
+                sabianSymbols.GetProperty(planet.JsonName),
                 planet.House);
         }
 
-        var asteroids = root.GetProperty("asteroids");
         foreach (var asteroid in AsteroidCases)
         {
-            AssertBodySnapshot(
-                asteroids.GetProperty(asteroid.JsonName),
+            AssertPointSnapshot(
+                points.GetProperty(asteroid.JsonName),
+                "asteroid",
                 asteroid.EclipticLongitude,
                 asteroid.Sign,
                 asteroid.DegreeInSign,
+                sabianSymbols.GetProperty(asteroid.JsonName),
                 asteroid.House);
         }
 
-        var angles = root.GetProperty("angles");
-        AssertBodySnapshot(angles.GetProperty("asc"), "114°34’02″", "Cancer", "24°34’02″");
-        AssertBodySnapshot(angles.GetProperty("ic"), "190°43’33″", "Libra", "10°43’33″");
-        AssertBodySnapshot(angles.GetProperty("dsc"), "294°34’02″", "Capricorn", "24°34’02″");
-        AssertBodySnapshot(angles.GetProperty("mc"), "10°43’33″", "Aries", "10°43’33″");
+        AssertPointSnapshot(points.GetProperty("asc"), "angle", "114°34’02″", "Cancer", "24°34’02″", sabianSymbols.GetProperty("asc"));
+        AssertPointSnapshot(points.GetProperty("ic"), "angle", "190°43’33″", "Libra", "10°43’33″", sabianSymbols.GetProperty("ic"));
+        AssertPointSnapshot(points.GetProperty("dsc"), "angle", "294°34’02″", "Capricorn", "24°34’02″", sabianSymbols.GetProperty("dsc"));
+        AssertPointSnapshot(points.GetProperty("mc"), "angle", "10°43’33″", "Aries", "10°43’33″", sabianSymbols.GetProperty("mc"));
 
-        var objects = root.GetProperty("objects");
         foreach (var body in ObjectCases)
         {
-            AssertBodySnapshot(
-                objects.GetProperty(body.JsonName),
+            AssertPointSnapshot(
+                points.GetProperty(body.JsonName),
+                "object",
                 body.EclipticLongitude,
                 body.Sign,
                 body.DegreeInSign,
+                sabianSymbols.GetProperty(body.JsonName),
                 body.House);
         }
 
         foreach (var body in AdditionalObjectCases)
         {
-            AssertBodySnapshot(
-                objects.GetProperty(body.JsonName),
+            AssertPointSnapshot(
+                points.GetProperty(body.JsonName),
+                "object",
                 body.EclipticLongitude,
                 body.Sign,
                 body.DegreeInSign,
+                sabianSymbols.GetProperty(body.JsonName),
                 body.House);
         }
 
@@ -155,7 +166,7 @@ public class AppTests
         var sunMoon = aspects.Single(aspect =>
             aspect.GetProperty("points").EnumerateArray().Select(point => point.GetString()).SequenceEqual(["sun", "moon"]));
         Assert.Equal("sextile", sunMoon.GetProperty("aspect").GetString());
-        Assert.Equal("55°11’32″", sunMoon.GetProperty("angle").GetString());
+        Assert.False(sunMoon.TryGetProperty("angle", out _));
         Assert.Equal("4°48’28″", sunMoon.GetProperty("orb").GetString());
 
         var culminatingPlanet = root.GetProperty("culminatingPlanet");
@@ -192,10 +203,10 @@ public class AppTests
 
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
-        Assert.Equal(ExpectedAngle(input, location, Cross.Asc), chart.Angles.Asc.EclipticLongitude);
-        Assert.Equal(ExpectedAngle(input, location, Cross.Ic), chart.Angles.Ic.EclipticLongitude);
-        Assert.Equal(ExpectedAngle(input, location, Cross.Dc), chart.Angles.Dsc.EclipticLongitude);
-        Assert.Equal(ExpectedAngle(input, location, Cross.Mc), chart.Angles.Mc.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Asc), chart.Points.Asc.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Ic), chart.Points.Ic.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Dc), chart.Points.Dsc.EclipticLongitude);
+        Assert.Equal(ExpectedAngle(input, location, Cross.Mc), chart.Points.Mc.EclipticLongitude);
     }
 
     [Fact]
@@ -211,7 +222,7 @@ public class AppTests
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
         Assert.Equal("placidus", chart.Houses.System);
-        Assert.Equal(chart.Angles.Asc.EclipticLongitude, chart.Houses.Cusps.House1.EclipticLongitude);
+        Assert.Equal(chart.Points.Asc.EclipticLongitude, chart.Houses.Cusps.House1.EclipticLongitude);
         Assert.Equal(ExpectedHouseCusp(input, location, Houses.House1), chart.Houses.Cusps.House1.EclipticLongitude);
         Assert.Equal(ExpectedHouseCusp(input, location, Houses.House10), chart.Houses.Cusps.House10.EclipticLongitude);
     }
@@ -228,8 +239,8 @@ public class AppTests
 
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
-        AssertBodySnapshot(chart.Objects.PartOfFortune, "156°19’33″", "Virgo", "6°19’33″", "house4");
-        Assert.Equal(ExpectedNightPartOfFortune(input, location), chart.Objects.PartOfFortune.EclipticLongitude);
+        AssertPointSnapshot(chart.Points.PartOfFortune, "object", "156°19’33″", "Virgo", "6°19’33″", "house4");
+        Assert.Equal(ExpectedNightPartOfFortune(input, location), chart.Points.PartOfFortune.EclipticLongitude);
     }
 
     [Fact]
@@ -244,7 +255,7 @@ public class AppTests
 
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
-        Assert.Equal(ExpectedLilith(input), chart.Objects.Lilith.EclipticLongitude);
+        Assert.Equal(ExpectedLilith(input), chart.Points.Lilith.EclipticLongitude);
     }
 
     [Fact]
@@ -261,8 +272,9 @@ public class AppTests
 
         foreach (var asteroid in AsteroidCases)
         {
-            AssertBodySnapshot(
+            AssertPointSnapshot(
                 BodyPositionFor(chart, asteroid.JsonName),
+                "asteroid",
                 asteroid.EclipticLongitude,
                 asteroid.Sign,
                 asteroid.DegreeInSign,
@@ -328,23 +340,41 @@ public class AppTests
         Assert.Null(location);
     }
 
-    private static void AssertBodySnapshot(
+    private static void AssertPositionSnapshot(
         JsonElement body,
         string longitude,
         string sign,
         string degreeInSign,
+        JsonElement sabian,
+        string? house = null)
+    {
+        AssertPositionSnapshot(body, longitude, sign, degreeInSign, sabian, allowsType: false, house);
+    }
+
+    private static void AssertPositionSnapshot(
+        JsonElement body,
+        string longitude,
+        string sign,
+        string degreeInSign,
+        JsonElement sabian,
+        bool allowsType,
         string? house = null)
     {
         Assert.Equal(JsonValueKind.String, body.GetProperty("eclipticLongitude").ValueKind);
         Assert.Equal(JsonValueKind.String, body.GetProperty("sign").ValueKind);
         Assert.Equal(JsonValueKind.String, body.GetProperty("degreeInSign").ValueKind);
         Assert.False(body.TryGetProperty("name", out _));
+        if (!allowsType)
+        {
+            Assert.False(body.TryGetProperty("type", out _));
+        }
+
+        Assert.False(body.TryGetProperty("sabian", out _));
         Assert.Equal(longitude, body.GetProperty("eclipticLongitude").GetString());
         Assert.Equal(sign, body.GetProperty("sign").GetString());
         Assert.Equal(degreeInSign, body.GetProperty("degreeInSign").GetString());
         Assert.Equal(DispositorFor(sign), body.GetProperty("dispositor").GetProperty("planet").GetString());
 
-        var sabian = body.GetProperty("sabian");
         var sabianDegree = SabianDegreeFor(degreeInSign);
         Assert.Equal(SabianIndexFor(sign, sabianDegree), sabian.GetProperty("index").GetInt32());
         Assert.False(string.IsNullOrWhiteSpace(sabian.GetProperty("symbol").GetString()));
@@ -363,20 +393,33 @@ public class AppTests
         }
     }
 
-    private static void AssertBodySnapshot(
-        BodyPosition body,
+    private static void AssertPointSnapshot(
+        JsonElement body,
+        string type,
+        string longitude,
+        string sign,
+        string degreeInSign,
+        JsonElement sabian,
+        string? house = null)
+    {
+        Assert.Equal(type, body.GetProperty("type").GetString());
+        AssertPositionSnapshot(body, longitude, sign, degreeInSign, sabian, allowsType: true, house);
+    }
+
+    private static void AssertPointSnapshot(
+        PointOutput body,
+        string type,
         string longitude,
         string sign,
         string degreeInSign,
         string? house = null)
     {
+        Assert.Equal(type, body.Type);
         Assert.Equal(longitude, body.EclipticLongitude);
         Assert.Equal(sign, body.Sign);
         Assert.Equal(degreeInSign, body.DegreeInSign);
         Assert.Equal(house, body.House);
         Assert.Equal(DispositorFor(sign), body.Dispositor.Planet);
-        Assert.Equal(SabianIndexFor(sign, SabianDegreeFor(degreeInSign)), body.Sabian.Index);
-        Assert.False(string.IsNullOrWhiteSpace(body.Sabian.Symbol));
     }
 
     [Fact]
@@ -389,31 +432,31 @@ public class AppTests
         Assert.Equal("The Great Stone Face", SabianSymbols.SymbolForIndex(360));
     }
 
-    private static BodyPosition BodyPositionFor(ChartOutput chart, string jsonName)
+    private static PointOutput BodyPositionFor(ChartOutput chart, string jsonName)
     {
         return jsonName switch
         {
-            "sun" => chart.Planets.Sun,
-            "moon" => chart.Planets.Moon,
-            "mercury" => chart.Planets.Mercury,
-            "venus" => chart.Planets.Venus,
-            "mars" => chart.Planets.Mars,
-            "jupiter" => chart.Planets.Jupiter,
-            "saturn" => chart.Planets.Saturn,
-            "uranus" => chart.Planets.Uranus,
-            "neptune" => chart.Planets.Neptune,
-            "pluto" => chart.Planets.Pluto,
-            "northNode" => chart.Objects.NorthNode,
-            "southNode" => chart.Objects.SouthNode,
-            "partOfFortune" => chart.Objects.PartOfFortune,
-            "vertex" => chart.Objects.Vertex,
-            "antiVertex" => chart.Objects.AntiVertex,
-            "lilith" => chart.Objects.Lilith,
-            "chiron" => chart.Asteroids.Chiron,
-            "ceres" => chart.Asteroids.Ceres,
-            "pallas" => chart.Asteroids.Pallas,
-            "juno" => chart.Asteroids.Juno,
-            "vesta" => chart.Asteroids.Vesta,
+            "sun" => chart.Points.Sun,
+            "moon" => chart.Points.Moon,
+            "mercury" => chart.Points.Mercury,
+            "venus" => chart.Points.Venus,
+            "mars" => chart.Points.Mars,
+            "jupiter" => chart.Points.Jupiter,
+            "saturn" => chart.Points.Saturn,
+            "uranus" => chart.Points.Uranus,
+            "neptune" => chart.Points.Neptune,
+            "pluto" => chart.Points.Pluto,
+            "northNode" => chart.Points.NorthNode,
+            "southNode" => chart.Points.SouthNode,
+            "partOfFortune" => chart.Points.PartOfFortune,
+            "vertex" => chart.Points.Vertex,
+            "antiVertex" => chart.Points.AntiVertex,
+            "lilith" => chart.Points.Lilith,
+            "chiron" => chart.Points.Chiron,
+            "ceres" => chart.Points.Ceres,
+            "pallas" => chart.Points.Pallas,
+            "juno" => chart.Points.Juno,
+            "vesta" => chart.Points.Vesta,
             _ => throw new ArgumentOutOfRangeException(nameof(jsonName), jsonName, "Unknown body.")
         };
     }

@@ -9,10 +9,8 @@ public sealed record ChartOutput(
     string Chart,
     LocationOutput Location,
     HousesOutput Houses,
-    PlanetsOutput Planets,
-    AsteroidsOutput Asteroids,
-    AnglesOutput Angles,
-    ObjectsOutput Objects,
+    PointsOutput Points,
+    SabianSymbolsOutput SabianSymbols,
     IReadOnlyList<AspectOutput> Aspects,
     CulminatingPlanetOutput CulminatingPlanet);
 
@@ -25,60 +23,101 @@ public sealed record HousesOutput(
     HouseCuspsOutput Cusps);
 
 public sealed record HouseCuspsOutput(
-    BodyPosition House1,
-    BodyPosition House2,
-    BodyPosition House3,
-    BodyPosition House4,
-    BodyPosition House5,
-    BodyPosition House6,
-    BodyPosition House7,
-    BodyPosition House8,
-    BodyPosition House9,
-    BodyPosition House10,
-    BodyPosition House11,
-    BodyPosition House12);
+    PositionOutput House1,
+    PositionOutput House2,
+    PositionOutput House3,
+    PositionOutput House4,
+    PositionOutput House5,
+    PositionOutput House6,
+    PositionOutput House7,
+    PositionOutput House8,
+    PositionOutput House9,
+    PositionOutput House10,
+    PositionOutput House11,
+    PositionOutput House12);
 
-public sealed record PlanetsOutput(
-    BodyPosition Sun,
-    BodyPosition Moon,
-    BodyPosition Mercury,
-    BodyPosition Venus,
-    BodyPosition Mars,
-    BodyPosition Jupiter,
-    BodyPosition Saturn,
-    BodyPosition Uranus,
-    BodyPosition Neptune,
-    BodyPosition Pluto);
+public sealed record PointsOutput(
+    PointOutput Sun,
+    PointOutput Moon,
+    PointOutput Mercury,
+    PointOutput Venus,
+    PointOutput Mars,
+    PointOutput Jupiter,
+    PointOutput Saturn,
+    PointOutput Uranus,
+    PointOutput Neptune,
+    PointOutput Pluto,
+    PointOutput Chiron,
+    PointOutput Ceres,
+    PointOutput Pallas,
+    PointOutput Juno,
+    PointOutput Vesta,
+    PointOutput Asc,
+    PointOutput Ic,
+    PointOutput Dsc,
+    PointOutput Mc,
+    PointOutput NorthNode,
+    PointOutput SouthNode,
+    PointOutput PartOfFortune,
+    PointOutput Vertex,
+    PointOutput AntiVertex,
+    PointOutput Lilith);
 
-public sealed record AsteroidsOutput(
-    BodyPosition Chiron,
-    BodyPosition Ceres,
-    BodyPosition Pallas,
-    BodyPosition Juno,
-    BodyPosition Vesta);
+public sealed record SabianSymbolsOutput(
+    SabianOutput House1,
+    SabianOutput House2,
+    SabianOutput House3,
+    SabianOutput House4,
+    SabianOutput House5,
+    SabianOutput House6,
+    SabianOutput House7,
+    SabianOutput House8,
+    SabianOutput House9,
+    SabianOutput House10,
+    SabianOutput House11,
+    SabianOutput House12,
+    SabianOutput Sun,
+    SabianOutput Moon,
+    SabianOutput Mercury,
+    SabianOutput Venus,
+    SabianOutput Mars,
+    SabianOutput Jupiter,
+    SabianOutput Saturn,
+    SabianOutput Uranus,
+    SabianOutput Neptune,
+    SabianOutput Pluto,
+    SabianOutput Chiron,
+    SabianOutput Ceres,
+    SabianOutput Pallas,
+    SabianOutput Juno,
+    SabianOutput Vesta,
+    SabianOutput Asc,
+    SabianOutput Ic,
+    SabianOutput Dsc,
+    SabianOutput Mc,
+    SabianOutput NorthNode,
+    SabianOutput SouthNode,
+    SabianOutput PartOfFortune,
+    SabianOutput Vertex,
+    SabianOutput AntiVertex,
+    SabianOutput Lilith);
 
-public sealed record AnglesOutput(
-    BodyPosition Asc,
-    BodyPosition Ic,
-    BodyPosition Dsc,
-    BodyPosition Mc);
-
-public sealed record ObjectsOutput(
-    BodyPosition NorthNode,
-    BodyPosition SouthNode,
-    BodyPosition PartOfFortune,
-    BodyPosition Vertex,
-    BodyPosition AntiVertex,
-    BodyPosition Lilith);
-
-public sealed record BodyPosition(
+public sealed record PositionOutput(
     string EclipticLongitude,
     string Sign,
     string DegreeInSign,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? House,
-    DispositorOutput Dispositor,
-    SabianOutput Sabian);
+    DispositorOutput Dispositor);
+
+public sealed record PointOutput(
+    string Type,
+    string EclipticLongitude,
+    string Sign,
+    string DegreeInSign,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? House,
+    DispositorOutput Dispositor);
 
 public sealed record DispositorOutput(
     string Planet);
@@ -90,7 +129,6 @@ public sealed record SabianOutput(
 public sealed record AspectOutput(
     IReadOnlyList<string> Points,
     string Aspect,
-    string Angle,
     string Orb);
 
 public sealed record CulminatingPlanetOutput(

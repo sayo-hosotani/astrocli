@@ -66,9 +66,9 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
 
 位置情報は `"latitude,longitude"` の1引数で指定する。緯度は `度°分’秒″N/S`、経度は `度°分’秒″E/W` の60進法で指定する。
 
-出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、感受点（True Nodeのノースノード/サウスノード、Part of Fortune、Vertex、Anti Vertex、Lilith）の黄経度数、星座、星座内度数、ディスポジター、サビアン度数情報を含める。主要10天体、小惑星、感受点には所属ハウスも含める。さらに、主要10天体・小惑星・感受点の2点間メジャーアスペクト一覧と、MCから黄道順に最も近い主要10天体をカルミネート天体として出力する。天体位置、ノード、アングル、ハウスカスプ、Vertex、Lilithは `SharpAstrology.SwissEph` のMoshierモードで計算する。Part of FortuneはASC、太陽、月から算出し、太陽が地平線上なら昼式 `ASC + Moon - Sun`、地平線下なら夜式 `ASC + Sun - Moon` を使う。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
+出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、感受点（True Nodeのノースノード/サウスノード、Part of Fortune、Vertex、Anti Vertex、Lilith）の黄経度数、星座、星座内度数、ディスポジター、サビアン度数情報を含める。主要10天体、小惑星、感受点には所属ハウスも含める。主要10天体、小惑星、アングル、感受点は `points` にまとめ、各pointは `type` で `planet`、`asteroid`、`angle`、`object` を示す。サビアン情報は `sabianSymbols` にまとめる。さらに、主要10天体・小惑星・感受点の2点間メジャーアスペクト一覧と、MCから黄道順に最も近い主要10天体をカルミネート天体として出力する。天体位置、ノード、アングル、ハウスカスプ、Vertex、Lilithは `SharpAstrology.SwissEph` のMoshierモードで計算する。Part of FortuneはASC、太陽、月から算出し、太陽が地平線上なら昼式 `ASC + Moon - Sun`、地平線下なら夜式 `ASC + Sun - Moon` を使う。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
 
-ディスポジターはモダンルーラーを採用する。アスペクト一覧は、conjunction、sextile、square、trine、oppositionを対象にし、オーブ6度以内の組み合わせを出力する。サビアン情報はジョーンズ版の英語シンボル名を採用し、360度通し番号とシンボル名を出力する。
+ディスポジターはモダンルーラーを採用する。アスペクト一覧は、conjunction、sextile、square、trine、oppositionを対象にし、オーブ6度以内の組み合わせを出力する。アスペクトは該当する2点、アスペクト種別、オーブを出力し、解釈に直接使わない実角度は出力しない。サビアン情報はジョーンズ版の英語シンボル名を採用し、360度通し番号とシンボル名を出力する。
 
 Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の osculating apogee（月の瞬時の遠地点。ブラックムーンやNatural Lilithと呼ばれることがある、天文学的な月の遠地点方向）の黄経を計算して出力する。ツールは月軌道楕円の空の焦点を直接計算しているわけではない。リリスは物理天体ではなく、占星術上は月の遠地点や月軌道楕円の空の焦点として説明されることがあるが、この出力では天文学的な月の遠地点方向を採用する。外部検証値と約2分の差が残っているが、Lilith自体が計算方式や採用する遠地点の扱いによって差が出る感受点であるため、現時点ではこの差分を許容する。
 
@@ -91,10 +91,6 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
         "degreeInSign": "24°29’59″",
         "dispositor": {
           "planet": "moon"
-        },
-        "sabian": {
-          "index": 115,
-          "symbol": "Dark shadow or mantle thrown suddenly over the right shoulder"
         }
       },
       "house10": {
@@ -103,205 +99,69 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
         "degreeInSign": "11°06’51″",
         "dispositor": {
           "planet": "mars"
-        },
-        "sabian": {
-          "index": 12,
-          "symbol": "A flock of wild geese."
         }
       }
     }
   },
-  "planets": {
+  "points": {
     "sun": {
+      "type": "planet",
       "eclipticLongitude": "105°40’31″",
       "sign": "Cancer",
       "degreeInSign": "15°40’31″",
       "house": "house12",
       "dispositor": {
         "planet": "moon"
-      },
-      "sabian": {
-        "index": 106,
-        "symbol": "A man before a square with a manuscript roll before him."
       }
     },
-    "pluto": {
-      "eclipticLongitude": "222°25’53″",
-      "sign": "Scorpio",
-      "degreeInSign": "12°25’53″",
-      "house": "house4",
-      "dispositor": {
-        "planet": "pluto"
-      },
-      "sabian": {
-        "index": 223,
-        "symbol": "An inventor experimenting."
-      }
-    }
-  },
-  "asteroids": {
     "chiron": {
+      "type": "asteroid",
       "eclipticLongitude": "95°12’34″",
       "sign": "Cancer",
       "degreeInSign": "5°12’34″",
       "house": "house12",
       "dispositor": {
         "planet": "moon"
-      },
-      "sabian": {
-        "index": 96,
-        "symbol": "Game birds feathering their nests."
       }
     },
-    "ceres": {
-      "eclipticLongitude": "123°45’56″",
-      "sign": "Leo",
-      "degreeInSign": "3°45’56″",
-      "house": "house1",
-      "dispositor": {
-        "planet": "sun"
-      },
-      "sabian": {
-        "index": 124,
-        "symbol": "Man formally dressed and a deer with its horns folded."
-      }
-    }
-  },
-  "angles": {
     "asc": {
+      "type": "angle",
       "eclipticLongitude": "114°29’59″",
       "sign": "Cancer",
       "degreeInSign": "24°29’59″",
       "dispositor": {
         "planet": "moon"
-      },
-      "sabian": {
-        "index": 115,
-        "symbol": "Dark shadow or mantle thrown suddenly over the right shoulder"
-      }
-    },
-    "ic": {
-      "eclipticLongitude": "191°06’51″",
-      "sign": "Libra",
-      "degreeInSign": "11°06’51″",
-      "dispositor": {
-        "planet": "venus"
-      },
-      "sabian": {
-        "index": 192,
-        "symbol": "Miners are emerging from a mine."
-      }
-    },
-    "dsc": {
-      "eclipticLongitude": "294°29’59″",
-      "sign": "Capricorn",
-      "degreeInSign": "24°29’59″",
-      "dispositor": {
-        "planet": "saturn"
-      },
-      "sabian": {
-        "index": 295,
-        "symbol": "An oriental rug dealer"
-      }
-    },
-    "mc": {
-      "eclipticLongitude": "11°06’51″",
-      "sign": "Aries",
-      "degreeInSign": "11°06’51″",
-      "dispositor": {
-        "planet": "mars"
-      },
-      "sabian": {
-        "index": 12,
-        "symbol": "A flock of wild geese."
-      }
-    }
-  },
-  "objects": {
-    "northNode": {
-      "eclipticLongitude": "326°24’19″",
-      "sign": "Aquarius",
-      "degreeInSign": "26°24’19″",
-      "house": "house8",
-      "dispositor": {
-        "planet": "uranus"
-      },
-      "sabian": {
-        "index": 327,
-        "symbol": "An ancient pottery bowl filled with fresh violets."
-      }
-    },
-    "southNode": {
-      "eclipticLongitude": "146°24’19″",
-      "sign": "Leo",
-      "degreeInSign": "26°24’19″",
-      "house": "house2",
-      "dispositor": {
-        "planet": "sun"
-      },
-      "sabian": {
-        "index": 147,
-        "symbol": "Daybreak"
-      }
-    },
-    "partOfFortune": {
-      "eclipticLongitude": "169°45’34″",
-      "sign": "Virgo",
-      "degreeInSign": "19°45’34″",
-      "house": "house3",
-      "dispositor": {
-        "planet": "mercury"
-      },
-      "sabian": {
-        "index": 170,
-        "symbol": "An automobile caravan."
-      }
-    },
-    "vertex": {
-      "eclipticLongitude": "248°46’52″",
-      "sign": "Sagittarius",
-      "degreeInSign": "8°46’52″",
-      "house": "house5",
-      "dispositor": {
-        "planet": "jupiter"
-      },
-      "sabian": {
-        "index": 249,
-        "symbol": "A mother with her children on the stairs."
-      }
-    },
-    "antiVertex": {
-      "eclipticLongitude": "68°46’52″",
-      "sign": "Gemini",
-      "degreeInSign": "8°46’52″",
-      "house": "house11",
-      "dispositor": {
-        "planet": "mercury"
-      },
-      "sabian": {
-        "index": 69,
-        "symbol": "A quiver filled with arrows."
       }
     },
     "lilith": {
+      "type": "object",
       "eclipticLongitude": "201°45’48″",
       "sign": "Libra",
       "degreeInSign": "21°45’48″",
       "house": "house4",
       "dispositor": {
         "planet": "venus"
-      },
-      "sabian": {
-        "index": 202,
-        "symbol": "A child giving birds a drink at a fountain."
       }
+    }
+  },
+  "sabianSymbols": {
+    "house1": {
+      "index": 115,
+      "symbol": "Dark shadow or mantle thrown suddenly over the right shoulder"
+    },
+    "sun": {
+      "index": 106,
+      "symbol": "A man before a square with a manuscript roll before him."
+    },
+    "asc": {
+      "index": 115,
+      "symbol": "Dark shadow or mantle thrown suddenly over the right shoulder"
     }
   },
   "aspects": [
     {
       "points": ["sun", "moon"],
       "aspect": "sextile",
-      "angle": "55°11’32″",
       "orb": "4°48’28″"
     }
   ],

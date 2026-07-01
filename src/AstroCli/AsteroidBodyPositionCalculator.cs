@@ -71,7 +71,7 @@ public sealed class AsteroidBodyPositionCalculator
     {
         longitude = NormalizeDegrees(longitude);
 
-        return new ChartPoint(key, longitude, houseForLongitude?.Invoke(longitude));
+        return new ChartPoint(key, "asteroid", longitude, houseForLongitude?.Invoke(longitude));
     }
 
     private static double NormalizeDegrees(double value)
