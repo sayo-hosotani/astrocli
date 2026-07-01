@@ -8,19 +8,17 @@ public sealed record ChartOutput(
     string System,
     string Chart,
     LocationOutput Location,
-    HousesOutput Houses,
+    string HouseSystem,
+    HouseCuspsOutput HouseCusps,
     PointsOutput Points,
     SabianSymbolsOutput SabianSymbols,
+    IReadOnlyList<DispositorGroupOutput> Dispositors,
     IReadOnlyList<AspectOutput> Aspects,
     CulminatingPlanetOutput CulminatingPlanet);
 
 public sealed record LocationOutput(
     string Latitude,
     string Longitude);
-
-public sealed record HousesOutput(
-    string System,
-    HouseCuspsOutput Cusps);
 
 public sealed record HouseCuspsOutput(
     PositionOutput House1,
@@ -107,8 +105,7 @@ public sealed record PositionOutput(
     string Sign,
     string DegreeInSign,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? House,
-    DispositorOutput Dispositor);
+    string? House);
 
 public sealed record PointOutput(
     string Type,
@@ -116,11 +113,18 @@ public sealed record PointOutput(
     string Sign,
     string DegreeInSign,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? House,
-    DispositorOutput Dispositor);
+    string? House);
 
-public sealed record DispositorOutput(
-    string Planet);
+public sealed record DispositorGroupOutput(
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? Root,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<string>? Loop,
+    IReadOnlyList<DispositorPairOutput> Dispositors);
+
+public sealed record DispositorPairOutput(
+    string Point,
+    string Dispositor);
 
 public sealed record SabianOutput(
     int Index,

@@ -66,9 +66,9 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
 
 位置情報は `"latitude,longitude"` の1引数で指定する。緯度は `度°分’秒″N/S`、経度は `度°分’秒″E/W` の60進法で指定する。
 
-出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、感受点（True Nodeのノースノード/サウスノード、Part of Fortune、Vertex、Anti Vertex、Lilith）の黄経度数、星座、星座内度数、ディスポジター、サビアン度数情報を含める。主要10天体、小惑星、感受点には所属ハウスも含める。主要10天体、小惑星、アングル、感受点は `points` にまとめ、各pointは `type` で `planet`、`asteroid`、`angle`、`object` を示す。サビアン情報は `sabianSymbols` にまとめる。さらに、主要10天体・小惑星・感受点の2点間メジャーアスペクト一覧と、MCから黄道順に最も近い主要10天体をカルミネート天体として出力する。天体位置、ノード、アングル、ハウスカスプ、Vertex、Lilithは `SharpAstrology.SwissEph` のMoshierモードで計算する。Part of FortuneはASC、太陽、月から算出し、太陽が地平線上なら昼式 `ASC + Moon - Sun`、地平線下なら夜式 `ASC + Sun - Moon` を使う。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
+出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、感受点（True Nodeのノースノード/サウスノード、Part of Fortune、Vertex、Anti Vertex、Lilith）の黄経度数、星座、星座内度数、ディスポジター、サビアン度数情報を含める。主要10天体、小惑星、感受点には所属ハウスも含める。主要10天体、小惑星、アングル、感受点は `points` にまとめ、各pointは `type` で `planet`、`asteroid`、`angle`、`object` を示す。サビアン情報は `sabianSymbols` にまとめる。ディスポジター情報は主要10天体だけを対象として `dispositors` にまとめ、最終rootまたはloopごとに惑星とディスポジター惑星のペアを列挙する。さらに、主要10天体・小惑星・感受点の2点間メジャーアスペクト一覧と、MCから黄道順に最も近い主要10天体をカルミネート天体として出力する。天体位置、ノード、アングル、ハウスカスプ、Vertex、Lilithは `SharpAstrology.SwissEph` のMoshierモードで計算する。Part of FortuneはASC、太陽、月から算出し、太陽が地平線上なら昼式 `ASC + Moon - Sun`、地平線下なら夜式 `ASC + Sun - Moon` を使う。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
 
-ディスポジターはモダンルーラーを採用する。アスペクト一覧は、conjunction、sextile、square、trine、oppositionを対象にし、オーブ6度以内の組み合わせを出力する。アスペクトは該当する2点、アスペクト種別、オーブを出力し、解釈に直接使わない実角度は出力しない。サビアン情報はジョーンズ版の英語シンボル名を採用し、360度通し番号とシンボル名を出力する。
+ディスポジターはモダンルーラーを採用する。アスペクト一覧は、conjunction、sextile、square、trine、oppositionを対象にし、オーブ6度以内の組み合わせを出力する。アスペクトは該当する2点、アスペクト種別、オーブを出力し、解釈に直接使わない実角度は出力しない。ノード同士、アングル同士、Vertex/Anti Vertex同士、ハウスカスプはアスペクト対象にしない。サビアン情報はジョーンズ版の英語シンボル名を採用し、360度通し番号とシンボル名を出力する。
 
 Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の osculating apogee（月の瞬時の遠地点。ブラックムーンやNatural Lilithと呼ばれることがある、天文学的な月の遠地点方向）の黄経を計算して出力する。ツールは月軌道楕円の空の焦点を直接計算しているわけではない。リリスは物理天体ではなく、占星術上は月の遠地点や月軌道楕円の空の焦点として説明されることがあるが、この出力では天文学的な月の遠地点方向を採用する。外部検証値と約2分の差が残っているが、Lilith自体が計算方式や採用する遠地点の扱いによって差が出る感受点であるため、現時点ではこの差分を許容する。
 
@@ -88,18 +88,12 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
       "house1": {
         "eclipticLongitude": "114°29’59″",
         "sign": "Cancer",
-        "degreeInSign": "24°29’59″",
-        "dispositor": {
-          "planet": "moon"
-        }
+        "degreeInSign": "24°29’59″"
       },
       "house10": {
         "eclipticLongitude": "11°06’51″",
         "sign": "Aries",
-        "degreeInSign": "11°06’51″",
-        "dispositor": {
-          "planet": "mars"
-        }
+        "degreeInSign": "11°06’51″"
       }
     }
   },
@@ -109,39 +103,27 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
       "eclipticLongitude": "105°40’31″",
       "sign": "Cancer",
       "degreeInSign": "15°40’31″",
-      "house": "house12",
-      "dispositor": {
-        "planet": "moon"
-      }
+      "house": "house12"
     },
     "chiron": {
       "type": "asteroid",
       "eclipticLongitude": "95°12’34″",
       "sign": "Cancer",
       "degreeInSign": "5°12’34″",
-      "house": "house12",
-      "dispositor": {
-        "planet": "moon"
-      }
+      "house": "house12"
     },
     "asc": {
       "type": "angle",
       "eclipticLongitude": "114°29’59″",
       "sign": "Cancer",
-      "degreeInSign": "24°29’59″",
-      "dispositor": {
-        "planet": "moon"
-      }
+      "degreeInSign": "24°29’59″"
     },
     "lilith": {
       "type": "object",
       "eclipticLongitude": "201°45’48″",
       "sign": "Libra",
       "degreeInSign": "21°45’48″",
-      "house": "house4",
-      "dispositor": {
-        "planet": "venus"
-      }
+      "house": "house4"
     }
   },
   "sabianSymbols": {
@@ -158,6 +140,42 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
       "symbol": "Dark shadow or mantle thrown suddenly over the right shoulder"
     }
   },
+  "dispositors": [
+    {
+      "loop": ["moon", "mercury"],
+      "dispositors": [
+        {
+          "point": "sun",
+          "dispositor": "moon"
+        },
+        {
+          "point": "moon",
+          "dispositor": "mercury"
+        },
+        {
+          "point": "mercury",
+          "dispositor": "moon"
+        },
+        {
+          "point": "venus",
+          "dispositor": "sun"
+        },
+        {
+          "point": "mars",
+          "dispositor": "sun"
+        }
+      ]
+    },
+    {
+      "root": "saturn",
+      "dispositors": [
+        {
+          "point": "saturn",
+          "dispositor": "saturn"
+        }
+      ]
+    }
+  ],
   "aspects": [
     {
       "points": ["sun", "moon"],

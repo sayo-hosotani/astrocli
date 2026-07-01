@@ -161,10 +161,28 @@ public class AppTests
                 body.House);
         }
 
+        var dispositors = root.GetProperty("dispositors").EnumerateArray().ToArray();
+        AssertDispositorLoop(
+            dispositors,
+            ["moon", "mercury"],
+            [
+                ("sun", "moon"),
+                ("moon", "mercury"),
+                ("mercury", "moon"),
+                ("venus", "sun"),
+                ("mars", "sun"),
+                ("jupiter", "mercury")
+            ]);
+        AssertDispositorRoot(dispositors, "saturn", [("saturn", "saturn"), ("uranus", "saturn"), ("neptune", "saturn")]);
+        AssertDispositorRoot(dispositors, "pluto", [("pluto", "pluto")]);
+        AssertDispositorPairsOnlyUsePlanets(dispositors);
+
         var aspects = root.GetProperty("aspects").EnumerateArray().ToArray();
         Assert.NotEmpty(aspects);
+        Assert.DoesNotContain(aspects, aspect => AspectPointsEqual(aspect, ["northNode", "southNode"]));
+        Assert.DoesNotContain(aspects, aspect => AspectPointsEqual(aspect, ["vertex", "antiVertex"]));
         var sunMoon = aspects.Single(aspect =>
-            aspect.GetProperty("points").EnumerateArray().Select(point => point.GetString()).SequenceEqual(["sun", "moon"]));
+            AspectPointsEqual(aspect, ["sun", "moon"]));
         Assert.Equal("sextile", sunMoon.GetProperty("aspect").GetString());
         Assert.False(sunMoon.TryGetProperty("angle", out _));
         Assert.Equal("4°48’28″", sunMoon.GetProperty("orb").GetString());
@@ -370,10 +388,10 @@ public class AppTests
         }
 
         Assert.False(body.TryGetProperty("sabian", out _));
+        Assert.False(body.TryGetProperty("dispositor", out _));
         Assert.Equal(longitude, body.GetProperty("eclipticLongitude").GetString());
         Assert.Equal(sign, body.GetProperty("sign").GetString());
         Assert.Equal(degreeInSign, body.GetProperty("degreeInSign").GetString());
-        Assert.Equal(DispositorFor(sign), body.GetProperty("dispositor").GetProperty("planet").GetString());
 
         var sabianDegree = SabianDegreeFor(degreeInSign);
         Assert.Equal(SabianIndexFor(sign, sabianDegree), sabian.GetProperty("index").GetInt32());
@@ -419,7 +437,65 @@ public class AppTests
         Assert.Equal(sign, body.Sign);
         Assert.Equal(degreeInSign, body.DegreeInSign);
         Assert.Equal(house, body.House);
-        Assert.Equal(DispositorFor(sign), body.Dispositor.Planet);
+    }
+
+    private static void AssertDispositorRoot(
+        IReadOnlyList<JsonElement> groups,
+        string root,
+        IReadOnlyList<(string Point, string Dispositor)> expectedPairs)
+    {
+        var group = groups.Single(candidate =>
+            candidate.TryGetProperty("root", out var rootProperty)
+            && rootProperty.GetString() == root);
+
+        Assert.False(group.TryGetProperty("loop", out _));
+        AssertDispositorPairs(group, expectedPairs);
+    }
+
+    private static void AssertDispositorLoop(
+        IReadOnlyList<JsonElement> groups,
+        IReadOnlyList<string> loop,
+        IReadOnlyList<(string Point, string Dispositor)> expectedPairs)
+    {
+        var group = groups.Single(candidate =>
+            candidate.TryGetProperty("loop", out var loopProperty)
+            && loopProperty.EnumerateArray().Select(item => item.GetString()).SequenceEqual(loop));
+
+        Assert.False(group.TryGetProperty("root", out _));
+        AssertDispositorPairs(group, expectedPairs);
+    }
+
+    private static void AssertDispositorPairs(
+        JsonElement group,
+        IReadOnlyList<(string Point, string Dispositor)> expectedPairs)
+    {
+        var pairs = group.GetProperty("dispositors")
+            .EnumerateArray()
+            .Select(pair => (Point: pair.GetProperty("point").GetString(), Dispositor: pair.GetProperty("dispositor").GetString()))
+            .ToArray();
+
+        foreach (var expected in expectedPairs)
+        {
+            Assert.Contains((expected.Point, expected.Dispositor), pairs);
+        }
+    }
+
+    private static void AssertDispositorPairsOnlyUsePlanets(IReadOnlyList<JsonElement> groups)
+    {
+        var planets = PlanetCases.Select(planet => planet.JsonName).ToHashSet(StringComparer.Ordinal);
+        foreach (var pair in groups.SelectMany(group => group.GetProperty("dispositors").EnumerateArray()))
+        {
+            Assert.Contains(pair.GetProperty("point").GetString()!, planets);
+            Assert.Contains(pair.GetProperty("dispositor").GetString()!, planets);
+        }
+    }
+
+    private static bool AspectPointsEqual(JsonElement aspect, IReadOnlyList<string> points)
+    {
+        return aspect.GetProperty("points")
+            .EnumerateArray()
+            .Select(point => point.GetString())
+            .SequenceEqual(points);
     }
 
     [Fact]

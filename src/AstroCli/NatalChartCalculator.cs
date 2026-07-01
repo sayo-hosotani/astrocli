@@ -33,6 +33,10 @@ public static class NatalChartCalculator
         new("southNode", Planets.SouthNode)
     ];
 
+    private static readonly IReadOnlyDictionary<string, int> PlanetOrder = PlanetDefinitions
+        .Select((body, index) => new { body.Key, Index = index })
+        .ToDictionary(body => body.Key, body => body.Index);
+
     private static readonly AspectDefinition[] AspectDefinitions =
     [
         new("conjunction", 0.0),
@@ -85,6 +89,7 @@ public static class NatalChartCalculator
             CreateHousesOutput(housePoints),
             CreatePointsOutput(points),
             CreateSabianSymbolsOutput(housePoints.Concat(points).ToArray()),
+            CalculateDispositors(planetPoints),
             CalculateAspects(aspectPoints),
             CalculateCulminatingPlanet(planetPoints, anglePoints.Single(point => point.Key == "mc")));
     }
@@ -292,6 +297,11 @@ public static class NatalChartCalculator
         {
             for (var right = left + 1; right < points.Count; right++)
             {
+                if (!ShouldCalculateAspect(points[left], points[right]))
+                {
+                    continue;
+                }
+
                 var angle = AngularDistance(points[left].Longitude, points[right].Longitude);
                 var aspect = AspectDefinitions
                     .Select(definition => new
@@ -316,6 +326,82 @@ public static class NatalChartCalculator
         }
 
         return aspects;
+    }
+
+    private static bool ShouldCalculateAspect(ChartPoint left, ChartPoint right)
+    {
+        return !IsPairOfType(left, right, "angle")
+            && !IsPairOfKeys(left, right, "northNode", "southNode")
+            && !IsPairOfKeys(left, right, "vertex", "antiVertex")
+            && left.Type != "house"
+            && right.Type != "house";
+    }
+
+    private static bool IsPairOfType(ChartPoint left, ChartPoint right, string type)
+    {
+        return left.Type == type && right.Type == type;
+    }
+
+    private static bool IsPairOfKeys(ChartPoint left, ChartPoint right, string first, string second)
+    {
+        return (left.Key == first && right.Key == second)
+            || (left.Key == second && right.Key == first);
+    }
+
+    private static IReadOnlyList<DispositorGroupOutput> CalculateDispositors(IReadOnlyList<ChartPoint> planetPoints)
+    {
+        var planetDispositors = planetPoints.ToDictionary(point => point.Key, DirectDispositorFor);
+        var groups = new List<DispositorAccumulator>();
+
+        foreach (var point in planetPoints)
+        {
+            var key = DispositorGroupKeyFor(point, planetDispositors);
+            var group = groups.FirstOrDefault(candidate => candidate.Key.Equals(key));
+            if (group is null)
+            {
+                group = new DispositorAccumulator(key);
+                groups.Add(group);
+            }
+
+            group.Pairs.Add(new DispositorPairOutput(point.Key, planetDispositors[point.Key]));
+        }
+
+        return groups
+            .Select(group => group.Key.Root is not null
+                ? new DispositorGroupOutput(group.Key.Root, null, group.Pairs)
+                : new DispositorGroupOutput(null, group.Key.Loop, group.Pairs))
+            .ToArray();
+    }
+
+    private static DispositorGroupKey DispositorGroupKeyFor(
+        ChartPoint point,
+        IReadOnlyDictionary<string, string> planetDispositors)
+    {
+        var visited = new List<string>();
+        var current = DirectDispositorFor(point);
+
+        while (true)
+        {
+            var loopStart = visited.IndexOf(current);
+            if (loopStart >= 0)
+            {
+                return DispositorGroupKey.ForLoop(CanonicalLoop(visited.Skip(loopStart).ToArray()));
+            }
+
+            visited.Add(current);
+
+            if (!planetDispositors.TryGetValue(current, out var next))
+            {
+                return DispositorGroupKey.ForRoot(current);
+            }
+
+            if (next == current)
+            {
+                return DispositorGroupKey.ForRoot(current);
+            }
+
+            current = next;
+        }
     }
 
     private static CulminatingPlanetOutput CalculateCulminatingPlanet(
@@ -345,8 +431,7 @@ public static class NatalChartCalculator
             SexagesimalDegreeFormatter.Format(longitude),
             sign.Name,
             SexagesimalDegreeFormatter.Format(sign.DegreeInSign),
-            point.House,
-            new DispositorOutput(DispositorFor(sign.Name)));
+            point.House);
     }
 
     private static PointOutput CreatePointOutput(ChartPoint point)
@@ -359,8 +444,7 @@ public static class NatalChartCalculator
             SexagesimalDegreeFormatter.Format(longitude),
             sign.Name,
             SexagesimalDegreeFormatter.Format(sign.DegreeInSign),
-            point.House,
-            new DispositorOutput(DispositorFor(sign.Name)));
+            point.House);
     }
 
     private static SabianOutput SabianFor(double longitude)
@@ -395,6 +479,26 @@ public static class NatalChartCalculator
             "Pisces" => "neptune",
             _ => throw new ArgumentOutOfRangeException(nameof(sign), sign, "Unknown zodiac sign.")
         };
+    }
+
+    private static string DirectDispositorFor(ChartPoint point)
+    {
+        var sign = Zodiac.SignForLongitude(NormalizeDegrees(point.Longitude));
+        return DispositorFor(sign.Name);
+    }
+
+    private static IReadOnlyList<string> CanonicalLoop(IReadOnlyList<string> loop)
+    {
+        var startIndex = Enumerable
+            .Range(0, loop.Count)
+            .OrderBy(index => PlanetOrder.TryGetValue(loop[index], out var order) ? order : int.MaxValue)
+            .ThenBy(index => loop[index], StringComparer.Ordinal)
+            .First();
+
+        return Enumerable
+            .Range(0, loop.Count)
+            .Select(offset => loop[(startIndex + offset) % loop.Count])
+            .ToArray();
     }
 
     private static bool IsSunAboveHorizon(DateTime utcDateTime, GeoLocation location)
@@ -490,4 +594,50 @@ public static class NatalChartCalculator
     private sealed record HouseCusp(string Name, double Longitude);
 
     private sealed record AspectDefinition(string Name, double Angle);
+
+    private sealed record DispositorAccumulator(DispositorGroupKey Key)
+    {
+        public List<DispositorPairOutput> Pairs { get; } = [];
+    }
+
+    private sealed record DispositorGroupKey(string? Root, IReadOnlyList<string>? Loop)
+    {
+        public static DispositorGroupKey ForRoot(string root)
+        {
+            return new DispositorGroupKey(root, null);
+        }
+
+        public static DispositorGroupKey ForLoop(IReadOnlyList<string> loop)
+        {
+            return new DispositorGroupKey(null, loop);
+        }
+
+        public bool Equals(DispositorGroupKey? other)
+        {
+            if (other is null)
+            {
+                return false;
+            }
+
+            return Root == other.Root
+                && ((Loop is null && other.Loop is null)
+                    || (Loop is not null && other.Loop is not null && Loop.SequenceEqual(other.Loop)));
+        }
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(Root);
+
+            if (Loop is not null)
+            {
+                foreach (var point in Loop)
+                {
+                    hash.Add(point);
+                }
+            }
+
+            return hash.ToHashCode();
+        }
+    }
 }
