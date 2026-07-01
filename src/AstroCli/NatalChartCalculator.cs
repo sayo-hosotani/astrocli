@@ -86,7 +86,8 @@ public static class NatalChartCalculator
             request.System,
             request.Chart,
             new LocationOutput(request.Location.FormatLatitude(), request.Location.FormatLongitude()),
-            CreateHousesOutput(housePoints),
+            "placidus",
+            CreateHouseCuspsOutput(housePoints),
             CreatePointsOutput(points),
             CreateSabianSymbolsOutput(housePoints.Concat(points).ToArray()),
             CalculateDispositors(planetPoints),
@@ -228,25 +229,23 @@ public static class NatalChartCalculator
             byKey["lilith"]);
     }
 
-    private static HousesOutput CreateHousesOutput(IReadOnlyList<ChartPoint> housePoints)
+    private static HouseCuspsOutput CreateHouseCuspsOutput(IReadOnlyList<ChartPoint> housePoints)
     {
         var byKey = housePoints.ToDictionary(point => point.Key);
 
-        return new HousesOutput(
-            "placidus",
-            new HouseCuspsOutput(
-                CreatePositionOutput(byKey["house1"]),
-                CreatePositionOutput(byKey["house2"]),
-                CreatePositionOutput(byKey["house3"]),
-                CreatePositionOutput(byKey["house4"]),
-                CreatePositionOutput(byKey["house5"]),
-                CreatePositionOutput(byKey["house6"]),
-                CreatePositionOutput(byKey["house7"]),
-                CreatePositionOutput(byKey["house8"]),
-                CreatePositionOutput(byKey["house9"]),
-                CreatePositionOutput(byKey["house10"]),
-                CreatePositionOutput(byKey["house11"]),
-                CreatePositionOutput(byKey["house12"])));
+        return new HouseCuspsOutput(
+            CreatePositionOutput(byKey["house1"]),
+            CreatePositionOutput(byKey["house2"]),
+            CreatePositionOutput(byKey["house3"]),
+            CreatePositionOutput(byKey["house4"]),
+            CreatePositionOutput(byKey["house5"]),
+            CreatePositionOutput(byKey["house6"]),
+            CreatePositionOutput(byKey["house7"]),
+            CreatePositionOutput(byKey["house8"]),
+            CreatePositionOutput(byKey["house9"]),
+            CreatePositionOutput(byKey["house10"]),
+            CreatePositionOutput(byKey["house11"]),
+            CreatePositionOutput(byKey["house12"]));
     }
 
     private static ChartPoint CalculateBodyPoint(

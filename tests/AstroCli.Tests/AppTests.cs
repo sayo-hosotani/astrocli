@@ -91,9 +91,9 @@ public class AppTests
 
         var sabianSymbols = root.GetProperty("sabianSymbols");
 
-        var houses = root.GetProperty("houses");
-        Assert.Equal("placidus", houses.GetProperty("system").GetString());
-        var cusps = houses.GetProperty("cusps");
+        Assert.False(root.TryGetProperty("houses", out _));
+        Assert.Equal("placidus", root.GetProperty("houseSystem").GetString());
+        var cusps = root.GetProperty("houseCusps");
         AssertPositionSnapshot(cusps.GetProperty("house1"), "114°34’02″", "Cancer", "24°34’02″", sabianSymbols.GetProperty("house1"));
         AssertPositionSnapshot(cusps.GetProperty("house2"), "135°37’06″", "Leo", "15°37’06″", sabianSymbols.GetProperty("house2"));
         AssertPositionSnapshot(cusps.GetProperty("house3"), "160°15’14″", "Virgo", "10°15’14″", sabianSymbols.GetProperty("house3"));
@@ -239,10 +239,10 @@ public class AppTests
 
         var chart = NatalChartCalculator.Calculate(request, new FakeAsteroidHorizonsClient());
 
-        Assert.Equal("placidus", chart.Houses.System);
-        Assert.Equal(chart.Points.Asc.EclipticLongitude, chart.Houses.Cusps.House1.EclipticLongitude);
-        Assert.Equal(ExpectedHouseCusp(input, location, Houses.House1), chart.Houses.Cusps.House1.EclipticLongitude);
-        Assert.Equal(ExpectedHouseCusp(input, location, Houses.House10), chart.Houses.Cusps.House10.EclipticLongitude);
+        Assert.Equal("placidus", chart.HouseSystem);
+        Assert.Equal(chart.Points.Asc.EclipticLongitude, chart.HouseCusps.House1.EclipticLongitude);
+        Assert.Equal(ExpectedHouseCusp(input, location, Houses.House1), chart.HouseCusps.House1.EclipticLongitude);
+        Assert.Equal(ExpectedHouseCusp(input, location, Houses.House10), chart.HouseCusps.House10.EclipticLongitude);
     }
 
     [Fact]
