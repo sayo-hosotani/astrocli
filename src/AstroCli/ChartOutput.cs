@@ -9,12 +9,15 @@ public sealed record ChartOutput(
     string Chart,
     LocationOutput Location,
     string HouseSystem,
+    ChartRulerOutput ChartRuler,
     CulminateOutput Culminate,
     HouseCuspsOutput HouseCusps,
     PointsOutput Points,
     SabianSymbolsOutput SabianSymbols,
     IReadOnlyList<DispositorGroupOutput> Dispositors,
-    IReadOnlyList<AspectOutput> Aspects);
+    IReadOnlyList<AspectOutput> Aspects,
+    IReadOnlyList<StelliumOutput> Stelliums,
+    IReadOnlyList<ComplexAspectOutput> ComplexAspects);
 
 public sealed record LocationOutput(
     string Latitude,
@@ -146,6 +149,20 @@ public sealed record AspectOutput(
     IReadOnlyList<string> Points,
     string Aspect,
     string Orb);
+
+public sealed record ChartRulerOutput(
+    string Sign,
+    string Ruler);
+
+public sealed record StelliumOutput(
+    string Kind,
+    string Name,
+    IReadOnlyList<string> Points);
+
+public sealed record ComplexAspectOutput(
+    string Pattern,
+    IReadOnlyList<string> Points,
+    IReadOnlyList<AspectOutput> Aspects);
 
 public sealed record CulminateOutput(
     string Planet,

@@ -46,6 +46,12 @@ public static class NatalChartCalculator
         new("opposition", 180.0)
     ];
 
+    private static readonly AspectDefinition[] ComplexAspectDefinitions =
+    [
+        .. AspectDefinitions,
+        new("quincunx", 150.0)
+    ];
+
     public static ChartOutput Calculate(ChartRequest request, IHorizonsClient? horizonsClient = null)
     {
         return CalculateAsync(request, horizonsClient).GetAwaiter().GetResult();
@@ -87,12 +93,15 @@ public static class NatalChartCalculator
             request.Chart,
             new LocationOutput(request.Location.FormatLatitude(), request.Location.FormatLongitude()),
             "placidus",
+            CalculateChartRuler(anglePoints.Single(point => point.Key == "asc")),
             CalculateCulminate(planetPoints, anglePoints.Single(point => point.Key == "mc")),
             CreateHouseCuspsOutput(housePoints),
             CreatePointsOutput(points),
             CreateSabianSymbolsOutput(housePoints.Concat(points).ToArray()),
             CalculateDispositors(planetPoints),
-            CalculateAspects(aspectPoints));
+            CalculateAspects(aspectPoints),
+            CalculateStelliums(aspectPoints),
+            CalculateComplexAspects(aspectPoints));
     }
 
     private static IReadOnlyList<ChartPoint> CalculatePlanetPoints(
@@ -301,16 +310,7 @@ public static class NatalChartCalculator
                     continue;
                 }
 
-                var angle = AngularDistance(points[left].Longitude, points[right].Longitude);
-                var aspect = AspectDefinitions
-                    .Select(definition => new
-                    {
-                        Definition = definition,
-                        Orb = Math.Abs(angle - definition.Angle)
-                    })
-                    .Where(candidate => candidate.Orb <= AspectOrbDegrees)
-                    .OrderBy(candidate => candidate.Orb)
-                    .FirstOrDefault();
+                var aspect = FindAspect(points[left], points[right], AspectDefinitions);
 
                 if (aspect is null)
                 {
@@ -319,12 +319,218 @@ public static class NatalChartCalculator
 
                 aspects.Add(new AspectOutput(
                     [points[left].Key, points[right].Key],
-                    aspect.Definition.Name,
+                    aspect.Name,
                     SexagesimalDegreeFormatter.Format(aspect.Orb)));
             }
         }
 
         return aspects;
+    }
+
+    private static IReadOnlyList<StelliumOutput> CalculateStelliums(IReadOnlyList<ChartPoint> points)
+    {
+        var signStelliums = points
+            .GroupBy(point => Zodiac.SignForLongitude(NormalizeDegrees(point.Longitude)).Name)
+            .Where(group => group.Count() >= 3)
+            .Select(group => new StelliumOutput("sign", group.Key, group.Select(point => point.Key).ToArray()));
+        var houseStelliums = points
+            .Where(point => point.House is not null)
+            .GroupBy(point => point.House!.Value)
+            .Where(group => group.Count() >= 3)
+            .OrderBy(group => group.Key)
+            .Select(group => new StelliumOutput("house", group.Key.ToString(System.Globalization.CultureInfo.InvariantCulture), group.Select(point => point.Key).ToArray()));
+
+        return signStelliums.Concat(houseStelliums).ToArray();
+    }
+
+    private static IReadOnlyList<ComplexAspectOutput> CalculateComplexAspects(IReadOnlyList<ChartPoint> points)
+    {
+        var patterns = new List<ComplexAspectOutput>();
+
+        foreach (var trio in Combinations(points, 3))
+        {
+            AddIfPattern(patterns, "grandTrine", trio, ["trine", "trine", "trine"]);
+            AddIfPattern(patterns, "tSquare", trio, ["opposition", "square", "square"]);
+            AddIfPattern(patterns, "fingerOfGod", trio, ["quincunx", "quincunx", "sextile"]);
+            AddIfPattern(patterns, "minorGrandTrine", trio, ["trine", "sextile", "sextile"]);
+            AddIfPattern(patterns, "oppositionMediation", trio, ["opposition", "trine", "sextile"]);
+        }
+
+        foreach (var quartet in Combinations(points, 4))
+        {
+            AddIfPattern(patterns, "grandCross", quartet, ["opposition", "opposition", "square", "square", "square", "square"]);
+            AddIfPattern(patterns, "mysticRectangle", quartet, ["opposition", "opposition", "trine", "trine", "sextile", "sextile"]);
+            AddIfKite(patterns, quartet);
+        }
+
+        foreach (var sextet in Combinations(points, 6))
+        {
+            AddIfGrandSextile(patterns, sextet);
+        }
+
+        return patterns
+            .OrderBy(pattern => PatternOrder(pattern.Pattern))
+            .ThenBy(pattern => string.Join(",", pattern.Points), StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static void AddIfPattern(
+        List<ComplexAspectOutput> patterns,
+        string pattern,
+        IReadOnlyList<ChartPoint> points,
+        IReadOnlyList<string> expectedAspects)
+    {
+        var aspects = PairAspectsForComplexPattern(points);
+        if (aspects.Count != expectedAspects.Count)
+        {
+            return;
+        }
+
+        var actual = aspects.Select(aspect => aspect.Aspect).Order(StringComparer.Ordinal).ToArray();
+        var expected = expectedAspects.Order(StringComparer.Ordinal).ToArray();
+        if (!actual.SequenceEqual(expected))
+        {
+            return;
+        }
+
+        patterns.Add(CreateComplexAspectOutput(pattern, points, aspects));
+    }
+
+    private static void AddIfKite(List<ComplexAspectOutput> patterns, IReadOnlyList<ChartPoint> points)
+    {
+        var aspects = PairAspectsForComplexPattern(points);
+        if (aspects.Count != 6)
+        {
+            return;
+        }
+
+        foreach (var apex in points)
+        {
+            var aspectByOtherPoint = points
+                .Where(point => point.Key != apex.Key)
+                .Select(point => AspectBetweenForComplexPattern(apex, point))
+                .Where(aspect => aspect is not null)
+                .Select(aspect => aspect!)
+                .ToArray();
+
+            if (aspectByOtherPoint.Count(aspect => aspect.Aspect == "opposition") != 1
+                || aspectByOtherPoint.Count(aspect => aspect.Aspect == "sextile") != 2)
+            {
+                continue;
+            }
+
+            var grandTrinePoints = points.Where(point => point.Key != apex.Key).ToArray();
+            if (PairAspectsForComplexPattern(grandTrinePoints).All(aspect => aspect.Aspect == "trine"))
+            {
+                patterns.Add(CreateComplexAspectOutput("kite", points, aspects));
+                return;
+            }
+        }
+    }
+
+    private static void AddIfGrandSextile(List<ComplexAspectOutput> patterns, IReadOnlyList<ChartPoint> points)
+    {
+        var ordered = points.OrderBy(point => NormalizeDegrees(point.Longitude)).ToArray();
+        var adjacentAspects = Enumerable
+            .Range(0, ordered.Length)
+            .Select(index => AspectBetweenForComplexPattern(ordered[index], ordered[(index + 1) % ordered.Length]))
+            .ToArray();
+
+        if (adjacentAspects.Any(aspect => aspect?.Aspect != "sextile"))
+        {
+            return;
+        }
+
+        var oppositionCount = PairAspectsForComplexPattern(ordered).Count(aspect => aspect.Aspect == "opposition");
+        if (oppositionCount < 3)
+        {
+            return;
+        }
+
+        patterns.Add(CreateComplexAspectOutput("grandSextile", ordered, PairAspectsForComplexPattern(ordered)));
+    }
+
+    private static IReadOnlyList<AspectOutput> PairAspectsForComplexPattern(IReadOnlyList<ChartPoint> points)
+    {
+        var aspects = new List<AspectOutput>();
+
+        for (var left = 0; left < points.Count; left++)
+        {
+            for (var right = left + 1; right < points.Count; right++)
+            {
+                var aspect = AspectBetweenForComplexPattern(points[left], points[right]);
+                if (aspect is not null)
+                {
+                    aspects.Add(aspect);
+                }
+            }
+        }
+
+        return aspects;
+    }
+
+    private static AspectOutput? AspectBetweenForComplexPattern(ChartPoint left, ChartPoint right)
+    {
+        var aspect = FindAspect(left, right, ComplexAspectDefinitions);
+        if (aspect is null)
+        {
+            return null;
+        }
+
+        return new AspectOutput(
+            [left.Key, right.Key],
+            aspect.Name,
+            SexagesimalDegreeFormatter.Format(aspect.Orb));
+    }
+
+    private static ComplexAspectOutput CreateComplexAspectOutput(
+        string pattern,
+        IReadOnlyList<ChartPoint> points,
+        IReadOnlyList<AspectOutput> aspects)
+    {
+        return new ComplexAspectOutput(pattern, points.Select(point => point.Key).ToArray(), aspects);
+    }
+
+    private static AspectMatch? FindAspect(
+        ChartPoint left,
+        ChartPoint right,
+        IReadOnlyList<AspectDefinition> definitions)
+    {
+        var angle = AngularDistance(left.Longitude, right.Longitude);
+        var aspect = definitions
+            .Select(definition => new AspectMatch(definition.Name, Math.Abs(angle - definition.Angle)))
+            .Where(candidate => candidate.Orb <= AspectOrbDegrees)
+            .OrderBy(candidate => candidate.Orb)
+            .FirstOrDefault();
+
+        return aspect;
+    }
+
+    private static IEnumerable<IReadOnlyList<ChartPoint>> Combinations(IReadOnlyList<ChartPoint> points, int size)
+    {
+        var indexes = Enumerable.Range(0, size).ToArray();
+
+        while (true)
+        {
+            yield return indexes.Select(index => points[index]).ToArray();
+
+            var position = size - 1;
+            while (position >= 0 && indexes[position] == points.Count - size + position)
+            {
+                position--;
+            }
+
+            if (position < 0)
+            {
+                yield break;
+            }
+
+            indexes[position]++;
+            for (var next = position + 1; next < size; next++)
+            {
+                indexes[next] = indexes[next - 1] + 1;
+            }
+        }
     }
 
     private static bool ShouldCalculateAspect(ChartPoint left, ChartPoint right)
@@ -419,6 +625,12 @@ public static class NatalChartCalculator
         return new CulminateOutput(
             culminating.Point.Key,
             SexagesimalDegreeFormatter.Format(culminating.Distance));
+    }
+
+    private static ChartRulerOutput CalculateChartRuler(ChartPoint asc)
+    {
+        var sign = Zodiac.SignForLongitude(NormalizeDegrees(asc.Longitude));
+        return new ChartRulerOutput(sign.Name, DispositorFor(sign.Name));
     }
 
     private static PositionOutput CreatePositionOutput(ChartPoint point)
@@ -572,6 +784,23 @@ public static class NatalChartCalculator
         return distance > 180.0 ? 360.0 - distance : distance;
     }
 
+    private static int PatternOrder(string pattern)
+    {
+        return pattern switch
+        {
+            "grandTrine" => 0,
+            "tSquare" => 1,
+            "grandCross" => 2,
+            "fingerOfGod" => 3,
+            "mysticRectangle" => 4,
+            "minorGrandTrine" => 5,
+            "grandSextile" => 6,
+            "oppositionMediation" => 7,
+            "kite" => 8,
+            _ => int.MaxValue
+        };
+    }
+
     private static string FormatInputDateTime(DateTimeOffset dateTime)
     {
         return dateTime.ToString("yyyy-MM-dd HH:mm:ss zzz");
@@ -593,6 +822,7 @@ public static class NatalChartCalculator
     private sealed record HouseCusp(int Number, double Longitude);
 
     private sealed record AspectDefinition(string Name, double Angle);
+    private sealed record AspectMatch(string Name, double Orb);
 
     private sealed record DispositorAccumulator(DispositorGroupKey Key)
     {

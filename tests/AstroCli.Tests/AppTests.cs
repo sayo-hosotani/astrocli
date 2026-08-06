@@ -93,7 +93,12 @@ public class AppTests
 
         Assert.False(root.TryGetProperty("houses", out _));
         Assert.Equal("placidus", root.GetProperty("houseSystem").GetString());
+        Assert.True(root.TryGetProperty("chartRuler", out var chartRuler));
         Assert.True(root.TryGetProperty("culminate", out var culminate));
+        Assert.True(GetPropertyIndex(root, "houseSystem") < GetPropertyIndex(root, "chartRuler"));
+        Assert.True(GetPropertyIndex(root, "chartRuler") < GetPropertyIndex(root, "culminate"));
+        Assert.Equal("Cancer", chartRuler.GetProperty("sign").GetString());
+        Assert.Equal("moon", chartRuler.GetProperty("ruler").GetString());
         Assert.True(root.TryGetProperty("houseCusps", out var cusps));
         Assert.True(GetPropertyIndex(root, "culminate") < GetPropertyIndex(root, "houseCusps"));
         Assert.False(root.TryGetProperty("culminatingPlanet", out _));
@@ -192,6 +197,24 @@ public class AppTests
         Assert.False(sunMoon.TryGetProperty("angle", out _));
         Assert.Equal("4°48’28″", sunMoon.GetProperty("orb").GetString());
 
+        var stelliums = root.GetProperty("stelliums").EnumerateArray().ToArray();
+        Assert.Contains(stelliums, stellium =>
+            stellium.GetProperty("kind").GetString() == "sign"
+            && stellium.GetProperty("name").GetString() == "Cancer"
+            && PointsEqual(stellium.GetProperty("points"), ["sun", "mercury", "juno"]));
+        Assert.Contains(stelliums, stellium =>
+            stellium.GetProperty("kind").GetString() == "house"
+            && stellium.GetProperty("name").GetString() == "12"
+            && PointsEqual(stellium.GetProperty("points"), ["sun", "mercury", "jupiter", "juno"]));
+
+        var complexAspects = root.GetProperty("complexAspects").EnumerateArray().ToArray();
+        Assert.NotEmpty(complexAspects);
+        var nodeMediation = complexAspects.Single(aspect =>
+            aspect.GetProperty("pattern").GetString() == "oppositionMediation"
+            && PointsEqual(aspect.GetProperty("points"), ["jupiter", "northNode", "southNode"]));
+        Assert.Contains(nodeMediation.GetProperty("aspects").EnumerateArray(), aspect =>
+            AspectPointsEqual(aspect, ["northNode", "southNode"])
+            && aspect.GetProperty("aspect").GetString() == "opposition");
     }
 
     [Fact]
@@ -511,6 +534,14 @@ public class AppTests
     private static bool AspectPointsEqual(JsonElement aspect, IReadOnlyList<string> points)
     {
         return aspect.GetProperty("points")
+            .EnumerateArray()
+            .Select(point => point.GetString())
+            .SequenceEqual(points);
+    }
+
+    private static bool PointsEqual(JsonElement pointsElement, IReadOnlyList<string> points)
+    {
+        return pointsElement
             .EnumerateArray()
             .Select(point => point.GetString())
             .SequenceEqual(points);

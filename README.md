@@ -66,9 +66,9 @@ src/AstroCli/bin/Debug/net10.0/astrocli "1989-07-08 05:19:00 +09:00" "35°41’2
 
 位置情報は `"latitude,longitude"` の1引数で指定する。緯度は `度°分’秒″N/S`、経度は `度°分’秒″E/W` の60進法で指定する。
 
-出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、ハウスシステム、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、感受点（True Nodeのノースノード/サウスノード、Part of Fortune、Vertex、Anti Vertex、Lilith）の黄経度数、星座、星座内度数、ディスポジター、サビアン度数情報を含める。ハウスシステムは `houseSystem`、ハウスカスプは `houseCusps` としてroot直下に出力する。`houseCusps` のキーと各pointの所属ハウスは、`house1` ではなく `1` のような数値表現にする。主要10天体、小惑星、感受点には所属ハウスも含める。主要10天体、小惑星、アングル、感受点は `points` にまとめ、各pointは `type` で `planet`、`asteroid`、`angle`、`object` を示す。サビアン情報は `sabianSymbols` にまとめる。ディスポジター情報は主要10天体だけを対象として `dispositors` にまとめ、最終rootまたはloopごとに惑星とディスポジター惑星のペアを列挙する。さらに、主要10天体・小惑星・感受点の2点間メジャーアスペクト一覧と、MCから黄道順に最も近い主要10天体を `culminate` として出力する。天体位置、ノード、アングル、ハウスカスプ、Vertex、Lilithは `SharpAstrology.SwissEph` のMoshierモードで計算する。Part of FortuneはASC、太陽、月から算出し、太陽が地平線上なら昼式 `ASC + Moon - Sun`、地平線下なら夜式 `ASC + Sun - Moon` を使う。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
+出力には、入力日時、UTC換算日時、占術体系、チャート種別、位置情報、ハウスシステム、チャートルーラー、プラシーダスの12ハウスカスプ、主要10天体、小惑星、アングル（ASC/IC/DSC/MC）、感受点（True Nodeのノースノード/サウスノード、Part of Fortune、Vertex、Anti Vertex、Lilith）の黄経度数、星座、星座内度数、ディスポジター、サビアン度数情報を含める。ハウスシステムは `houseSystem`、チャートルーラーは `chartRuler`、ハウスカスプは `houseCusps` としてroot直下に出力する。`houseCusps` のキーと各pointの所属ハウスは、`house1` ではなく `1` のような数値表現にする。主要10天体、小惑星、感受点には所属ハウスも含める。主要10天体、小惑星、アングル、感受点は `points` にまとめ、各pointは `type` で `planet`、`asteroid`、`angle`、`object` を示す。サビアン情報は `sabianSymbols` にまとめる。ディスポジター情報は主要10天体だけを対象として `dispositors` にまとめ、最終rootまたはloopごとに惑星とディスポジター惑星のペアを列挙する。さらに、主要10天体・小惑星・感受点の2点間メジャーアスペクト一覧を `aspects`、同一サインまたは同一ハウスに3点以上あるステリウム一覧を `stelliums`、複合アスペクト一覧を `complexAspects`、MCから黄道順に最も近い主要10天体を `culminate` として出力する。天体位置、ノード、アングル、ハウスカスプ、Vertex、Lilithは `SharpAstrology.SwissEph` のMoshierモードで計算する。Part of FortuneはASC、太陽、月から算出し、太陽が地平線上なら昼式 `ASC + Moon - Sun`、地平線下なら夜式 `ASC + Sun - Moon` を使う。小惑星はJPL Horizonsから取得した状態ベクトルを `CosineKitty.AstronomyEngine` で地心黄経へ変換し、光時間補正を適用して計算する。
 
-ディスポジターはモダンルーラーを採用する。アスペクト一覧は、conjunction、sextile、square、trine、oppositionを対象にし、オーブ6度以内の組み合わせを出力する。アスペクトは該当する2点、アスペクト種別、オーブを出力し、解釈に直接使わない実角度は出力しない。ノード同士、アングル同士、Vertex/Anti Vertex同士、ハウスカスプはアスペクト対象にしない。サビアン情報はジョーンズ版の英語シンボル名を採用し、360度通し番号とシンボル名を出力する。
+チャートルーラーとディスポジターはモダンルーラーを採用する。アスペクト一覧は、conjunction、sextile、square、trine、oppositionを対象にし、オーブ6度以内の組み合わせを出力する。アスペクトは該当する2点、アスペクト種別、オーブを出力し、解釈に直接使わない実角度は出力しない。ノード同士、アングル同士、Vertex/Anti Vertex同士、ハウスカスプは通常のアスペクト対象にしない。複合アスペクトは、グランドトライン、Tスクエア、グランドクロス、神の指、ミスティックレクタングル、小三角、グランドセクスタイル、オポジション調停、カイトを対象にする。複合アスペクトで通常のアスペクト除外ルール以外の感受点が絡む場合は、ノード同士やVertex/Anti Vertex同士のように通常一覧から除外するペアも、複合図形の成立判定に限って考慮する。サビアン情報はジョーンズ版の英語シンボル名を採用し、360度通し番号とシンボル名を出力する。
 
 Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の osculating apogee（月の瞬時の遠地点。ブラックムーンやNatural Lilithと呼ばれることがある、天文学的な月の遠地点方向）の黄経を計算して出力する。ツールは月軌道楕円の空の焦点を直接計算しているわけではない。リリスは物理天体ではなく、占星術上は月の遠地点や月軌道楕円の空の焦点として説明されることがあるが、この出力では天文学的な月の遠地点方向を採用する。外部検証値と約2分の差が残っているが、Lilith自体が計算方式や採用する遠地点の扱いによって差が出る感受点であるため、現時点ではこの差分を許容する。
 
@@ -83,6 +83,10 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
     "longitude": "139°41’30″E"
   },
   "houseSystem": "placidus",
+  "chartRuler": {
+    "sign": "Cancer",
+    "ruler": "moon"
+  },
   "culminate": {
     "planet": "jupiter",
     "distanceFromMc": "74°18’03″"
@@ -183,6 +187,36 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
       "points": ["sun", "moon"],
       "aspect": "sextile",
       "orb": "4°48’28″"
+    }
+  ],
+  "stelliums": [
+    {
+      "kind": "sign",
+      "name": "Cancer",
+      "points": ["sun", "mercury", "juno"]
+    }
+  ],
+  "complexAspects": [
+    {
+      "pattern": "oppositionMediation",
+      "points": ["jupiter", "northNode", "southNode"],
+      "aspects": [
+        {
+          "points": ["jupiter", "northNode"],
+          "aspect": "trine",
+          "orb": "1°22’43″"
+        },
+        {
+          "points": ["jupiter", "southNode"],
+          "aspect": "sextile",
+          "orb": "1°22’43″"
+        },
+        {
+          "points": ["northNode", "southNode"],
+          "aspect": "opposition",
+          "orb": "0°00’00″"
+        }
+      ]
     }
   ]
 }
