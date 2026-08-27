@@ -286,3 +286,13 @@ src/AstroCli/bin/Debug/net10.0/astrocli asteroid --at "2026-06-29 22:00:00 +09:0
 - 恒久的に守る重要事項はrulesに残す。
 - 繰り返し使う作業手順はskillsに残す。
 - `plan.md` は使用しない。
+
+## License
+
+AstroCLIは、GNU Affero General Public License Version 3
+（`AGPL-3.0-only`）でライセンスされます。全文は
+[`LICENSE.md`](LICENSE.md) を参照してください。
+
+本体はAGPL-3.0の `SharpAstrology.SwissEph` を直接使用しています。
+Swiss Ephemerisのデュアルライセンスのうち、このプロジェクトではAGPLを選択しており、
+Swiss Ephemeris Professional Licenseは付与されません。
