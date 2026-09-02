@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vimshottari Dasha Runner"
+  short_description: "Calculate Dasha from source.chartFile"
+  default_prompt: "Use $vimshottari-dasha-runner to calculate Vimshottari Dasha from the user's source.chartFile and return the generated JSON file."
