@@ -2,52 +2,31 @@
 
 ## Objective
 
-小惑星ツールを、CosineKitty Astronomy Engineの `GravitySimulator` で使う状態ベクトルだけをJSON出力するツールに作り変える。
+既存のインド占星術ホロスコープJSONを参照し、Vimshottari Dashaを最大5階層まで再計算してJSONファイルへ出力するCLIツールを実装する。
 
 ## Requirements
 
-### Scope
-
-- 既存の `asteroid` サブコマンドを維持する。
-- `asteroid` サブコマンドは、常にキロン、セレス、パラス、ジュノー、ベスタの5件をまとめて扱う。
-- 出力は `GravitySimulator` に必要な値だけにする。
-- 観測地点は不要なので、`--location` オプションは削除する。
-- RA、Dec、azimuth、altitude、distanceAu は出力しない。
-- `--output` オプションは維持し、標準出力またはファイル出力を選べるようにする。
-- 固定対象を追加する必要が出た場合は、コード修正で対応する。
-
-### Fixed Targets
-
-- キロンは `2060;` を使う。
-- セレスは `1;` を使う。
-- パラスは `2;` を使う。
-- ジュノーは `3;` を使う。
-- ベスタは `4;` を使う。
-
-### Output
-
-- 出力JSONの `asteroids` には常に5件を含める。
-- 各小惑星には `id`、`horizonsCommand`、`stateVector` を含める。
-- `stateVector` には `epoch`、`origin`、`frame`、`positionUnit`、`velocityUnit`、`x`、`y`、`z`、`vx`、`vy`、`vz` を含める。
-- `origin` は `sun` とする。
-- `frame` は `EQJ` とする。
-- `positionUnit` は `AU` とする。
-- `velocityUnit` は `AU/day` とする。
+- `astrocli dasha <input-or-glob> [<input-or-glob> ...]` を提供する。
+- 入力リクエストJSONの `source.chartFile` を基準に相対パスを解決する。
+- Vimshottariの固定lord順、1年=365.25日、9分割、半開区間を使用する。
+- Moon sidereal longitudeからNakshatra、Pada、lord、fractionCompletedを再計算する。
+- depth 1〜5、period、referenceDateTime、既定期間、overlap filteringに対応する。
+- 出生時の固定UTC offset、ミリ秒3桁切り捨てで日時を出力する。
+- Legacy必須フィールドを検証し、不一致はWarning、欠落・不正値はErrorとする。
+- 複数入力・glob・重複排除・`*_dasha.json` 除外・バッチ集計に対応する。
+- 結果を入力リクエストと同じディレクトリの `<name>_dasha.json` に保存する。
+- 値がない `children` と `warnings` は出力しない。
 
 ## Acceptance Criteria
 
-- `astrocli asteroid --at "2026-06-29 22:00:00 +09:00"` の形式で実行できる。
-- `astrocli asteroid --at "2026-06-29 22:00:00 +09:00" --output result.json` の形式でファイル出力できる。
-- `--location` を指定すると不正引数として非ゼロ終了する。
-- JSON出力の `asteroids` に、キロン、セレス、パラス、ジュノー、ベスタの5件が含まれる。
-- 各小惑星の `stateVector` に `x`、`y`、`z`、`vx`、`vy`、`vz` が数値として含まれる。
-- JSON出力に `ra`、`dec`、`azimuth`、`altitude`、`distanceAu`、`location` は含まれない。
-- READMEにGravitySimulator用状態ベクトル出力の使い方と出力例を記載する。
+- 深さ1〜5のDashaツリーを仕様どおり生成できる。
+- 明示periodと深さ別の既定期間が仕様どおりに動作する。
+- Legacy検証結果がWarning/Errorとして仕様どおり分類される。
+- Error時に古い出力を残さず、バッチ処理を継続する。
+- READMEに使用方法を記載する。
 - `dotnet build AstroCli.slnx` が成功する。
 - `dotnet test AstroCli.slnx --no-build` が成功する。
 
 ## Current Status
 
 Completed.
-
-ユーザー承認済み。Codex goalに設定し、達成済み。

@@ -26,6 +26,9 @@ public static class App
             return AsteroidCommand.Run(args[1..], standardInput, standardOutput, standardError);
         }
 
+        if (args.Length > 0 && string.Equals(args[0], "dasha", StringComparison.OrdinalIgnoreCase))
+            return DashaCommand.Run(args[1..], standardOutput, standardError);
+
         if (args.Length != 2)
         {
             WriteUsageError(standardError);
@@ -69,6 +72,7 @@ public static class App
         standardError.WriteLine("Invalid arguments.");
         standardError.WriteLine("Usage: astrocli \"yyyy-MM-dd HH:mm:ss zzz\" \"35°41’22″N,139°41’30″E\"");
         standardError.WriteLine("Usage: astrocli asteroid --at \"yyyy-MM-dd HH:mm:ss zzz\" [--output result.json|-]");
+        standardError.WriteLine("Usage: astrocli dasha <input-or-glob> [<input-or-glob> ...]");
     }
 }
 

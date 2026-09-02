@@ -222,6 +222,17 @@ Lilithは、現状では `SharpAstrology.SwissEph` の低レベルAPIで月の o
 }
 ```
 
+## Vimshottari Dasha Tool
+
+既存ホロスコープJSONを参照して、Vimshottari Dashaを最大5階層まで計算します。入力リクエストJSONの `source.chartFile` にチャートファイルを指定し、次のように実行します。
+
+```text
+astrocli dasha request.json
+astrocli dasha "charts/*.json"
+```
+
+結果は入力ファイルと同じディレクトリに `<名前>_dasha.json` として保存されます。`output.depth`（1〜5、既定値2）と、必要に応じて `output.period` を入力JSONへ指定できます。出力には出生時MoonのNakshatra情報、固定UTC offsetの日時、対象期間に重なるDashaツリーが含まれます。
+
 ## Asteroid Tool
 
 既知小惑星は `asteroid` サブコマンドでJPL Horizons APIから状態ベクトルを取得する。
